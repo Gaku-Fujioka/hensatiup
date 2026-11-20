@@ -9,6 +9,7 @@ test("a learner filters lessons, runs custom input and inspects the actual imple
   await expect(page.locator(".lesson-card")).toHaveCount(1);
   await page.locator(".lesson-card").click();
   await expect(page.locator("#lessonSource")).toContainText("function binarySearch");
+  await page.getByText("入力を変えて試す", { exact: true }).click();
   await page.locator("#lessonInput").fill('{"values":[2,4,6],"target":6}');
   await page.getByRole("button", { name: "この入力で実行" }).click();
   await page.locator("#traceNext").click();
