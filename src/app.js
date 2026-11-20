@@ -2,6 +2,8 @@ import { maps } from './maps.js';
 import { explore, rules } from './search.js';
 import { lessons } from './lessons.js';
 import { draw, coordinates, boardLabel } from './atlas.js';
+import { editor, paint, quiz } from './editor.js';
+import { activeMission, completed, showWorkshop } from './workshop.js';
 
 const $ = id => document.getElementById(id);
 const canvas = $('map');
@@ -14,6 +16,9 @@ let map = structuredClone(maps[0]);
 let algorithm = 'bfs';
 let results, result, step = 0, timer = null, cursor = null;
 let mode = 'lab';
+let editing = false;
+let labMap = map;
+const editedMaps = new Map([[map.id,map]]);
 const choices = Object.entries(lessons);
 function analyse() {
   results = Object.fromEntries(Object.entries(rules).map(([key, rule]) => [key, explore(map,rule)]));
@@ -27,7 +32,7 @@ function renderBoard() {
   draw(canvas, map, result, step, cursor);
   $('status').textContent = timer ? '再生中' : step===last ? (result.path.length?'到着':'到達不能') : step ? '一時停止' : '待機中';
   $('status').dataset.on = String(Boolean(timer));
-  $('play').textContent = timer ? 'Ⅱ　停止' : step===last ? '↺　再再生' : '▶　再生';
+  $('play').textContent = timer ? 'Ⅱ　停止' : step===last ? '↺　もう一度' : '▶　再生';
   $('prev').disabled = $('rewind').disabled = step===0;
   $('next').disabled = step===last;
   $('seek').max = last; $('seek').value = step;
@@ -73,11 +78,39 @@ function lab() {
   $('lower').innerHTML='<div class="below">'+comparison()+'<section class="panel lower-panel" id="editor"><h2>地形と移動ルール</h2><p>上下左右に1マスずつ進めます。平地はコスト1、砂地は4。森と水辺は通れません。</p></section></div>';
 }
 function render() {
-  lab();
+  $('progress').textContent=completed.size+' / 3';
+  if (mode==='lab') {
+    lab();
+    quiz($('sidebar'),algorithm);
+    editor($('editor'),editing,()=>{
+      pause();editing=!editing;render();document.getElementById('edit').focus();
+    },()=>{
+      pause();map=structuredClone(maps.find(m=>m.id===map.id));editedMaps.set(map.id,map);analyse();render();
+    });
+  } else {
+    showWorkshop($('sidebar'),$('lower'),openPage,actual=>{
+      pause();result=actual;step=result.frames.length-1;renderBoard();
+      $('progress').textContent=completed.size+' / 3';
+    });
+  }
+  canvas.classList.toggle('editing',editing && mode==='lab');
   renderBoard();
 }
 preset.onchange=()=>{
-  pause();map=structuredClone(maps.find(m=>m.id===preset.value));cursor=null;analyse();render();
+  pause();map=editedMaps.get(preset.value)??structuredClone(maps.find(m=>m.id===preset.value));
+  editedMaps.set(map.id,map);cursor=null;analyse();render();
+};
+function applyBrush(cell) {
+  if (!editing || mode!=='lab') return;
+  if (paint(map,cell)) {
+    pause();analyse();render();
+  }
+}
+canvas.onclick=e=>{
+  const rect=canvas.getBoundingClientRect();
+  const x=Math.max(0,Math.min(map.cols-1,Math.floor((e.clientX-rect.left)*map.cols/rect.width)));
+  const y=Math.max(0,Math.min(map.rows-1,Math.floor((e.clientY-rect.top)*map.rows/rect.height)));
+  cursor=y*map.cols+x;applyBrush(cursor);renderBoard();
 };
 canvas.onfocus=()=>{cursor??=map.start;renderBoard();};
 canvas.onblur=()=>{cursor=null;renderBoard();};
@@ -86,6 +119,22 @@ canvas.onkeydown=e=>{
   const moves={ArrowRight:col<map.cols-1?pos+1:pos,ArrowLeft:col>0?pos-1:pos,
     ArrowDown:Math.min(pos+map.cols,(map.rows-1)*map.cols+col),ArrowUp:Math.max(col,pos-map.cols)};
   if (e.key in moves){e.preventDefault();cursor=moves[e.key];renderBoard();}
+  if (e.key==='Enter'||e.key===' ') {e.preventDefault();applyBrush(pos);}
 };
-analyse();render();
-$('navLab').setAttribute('aria-current','page');
+function openPage() {
+  pause();cursor=null;
+  if(mode==='lab') labMap=map;
+  mode=location.hash==='#mission'?'mission':'lab';
+  const mission=mode==='mission';
+  map=mission?maps.find(m=>m.id===activeMission().map):labMap;
+  preset.value=map.id;preset.disabled=mission;
+  $('pageTitle').textContent=mission?'配送ミッション':'経路探索ラボ';
+  $('subtitle').textContent=mission?'優先順位の式を書いて、自分のアルゴリズムで荷物を届けよう。':'同じ地図を、違う考え方で。探索の一手を見てみよう。';
+  for (const [id,active] of [['navLab',!mission],['navMission',mission]]) {
+    if(active) $(id).setAttribute('aria-current','page');else $(id).removeAttribute('aria-current');
+  }
+  analyse();if(mission)result=results.bfs;
+  render();
+}
+window.addEventListener('hashchange',openPage);
+openPage();
