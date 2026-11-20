@@ -1,5 +1,6 @@
 import { catalog } from "./catalog.js";
 import { runLesson } from "./trace.js";
+import { graphView } from "./graph-view.js";
 
 const root = document.getElementById("library");
 const el = (tag, className, text) => {
@@ -9,7 +10,7 @@ const el = (tag, className, text) => {
   return node;
 };
 const local = selector => root.querySelector(selector);
-const valueText = value => typeof value === "string" ? value : JSON.stringify(value);
+const valueText = value => typeof value === "string" ? value : typeof value === "number" && !Number.isFinite(value) ? "∞" : JSON.stringify(value);
 let query = "", group = "すべて", playback;
 export function stopLibrary() { clearInterval(playback); playback = null; }
 
@@ -64,6 +65,8 @@ function showLesson(lesson) {
     local("#traceNext").disabled=local("#traceEnd").disabled=index===trace.frames.length-1;
     local("#tracePlay").textContent=playback?"一時停止":"再生";
     const state=local("#traceState");state.replaceChildren();
+    const diagram=graphView(lesson.id,trace.frames[0].state,frame.state);
+    if(diagram)state.append(diagram);
     let firstArray=true;
     for(const [name,value] of Object.entries(frame.state)){
       const row=el("div","var-row");row.append(el("b","var-name",name));
