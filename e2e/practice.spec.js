@@ -8,6 +8,7 @@ test("all lessons render, finish and expose their question at mobile width", asy
   for (const lesson of catalog) {
     await page.goto("/#learn/" + lesson.id);
     await expect(page.locator("#library h1")).toHaveText(lesson.title);
+    await expect(page.locator(".observation-prompt")).not.toBeEmpty();
     await page.locator("#traceNext").click();
     if (lesson.id === "bfs") await expect(page.locator("#traceState svg")).toBeVisible();
     if (lesson.id === "lcs") await expect(page.locator(".dp-matrix .current")).toBeVisible();

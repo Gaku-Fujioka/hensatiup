@@ -6,6 +6,7 @@ import { openDrill } from "./drill-view.js";
 import { drills } from "./drills.js";
 import { useCases } from "./use-cases.js";
 import { applicationIds, openApplication } from "./applied-view.js";
+import { beginnerCourse, courseDiagram, courseOverview, observationPrompts } from "./learning-path.js";
 
 const root = document.getElementById("library");
 const el = (tag, className, text) => {
@@ -54,12 +55,12 @@ export function stopLibrary() {
 }
 
 function list() {
-  root.innerHTML = `<div class="lib-heading"><div><h1>アルゴリズム図鑑</h1><p>考え方を読み、入力を変えて、コードの動きを確かめよう。</p></div></div>
-    <a class="feature-lesson" href="#learn/binary"><div><small>最初のレッスン</small><h2>二分探索</h2><p>中央の値を見ると、なぜ候補が半分になる？</p></div><div class="feature-cells" aria-hidden="true"><i>1</i><i>3</i><i>4</i><i>7</i><i>11</i></div></a>
+  root.innerHTML = `<div class="lib-heading"><div><h1>アルゴリズム図鑑</h1><p>はじめての人は入門コースへ。調べたいテーマがある人は教材を検索できます。</p></div></div>
     <div class="library-extras"><a class="text-link" href="#compare">ソート比較実験</a><span>同じ入力で6方式の比較回数を測る</span><a class="text-link" href="#lab/observe">探索キューの比較実験</a><span>同じ経路で2種類のキューを比べる</span><a class="text-link" href="#drill/binary">実装ドリル</a><span>式を書いてテストする全6問</span></div>
     <section class="application-shelf"><h2>試せるミニアプリ</h2><div class="application-cards"></div></section>
-    <div class="catalog-tools"><label>教材を検索<input type="search" placeholder="例：ソート、区間、名簿" id="findLesson"></label><label>分野<select id="lessonGroup"></select></label><label>学習状況<select id="studyFilter"><option value="">すべて</option><option value="review">要復習</option><option value="learned">正解済み</option><option value="new">未回答</option></select></label></div>
+    <h2 class="catalog-title">すべての教材</h2><div class="catalog-tools"><label>教材を検索<input type="search" placeholder="例：ソート、区間、名簿" id="findLesson"></label><label>分野<select id="lessonGroup"></select></label><label>学習状況<select id="studyFilter"><option value="">すべて</option><option value="review">要復習</option><option value="learned">正解済み</option><option value="new">未回答</option></select></label></div>
     <p class="catalog-count" role="status"></p><div class="catalog-grid"></div>`;
+  local(".lib-heading").after(courseOverview(catalog, progressFor));
   const search = local("#findLesson"),
     select = local("#lessonGroup");
   for (const id of applicationIds) {
@@ -118,20 +119,27 @@ function list() {
 }
 
 function showLesson(lesson) {
+  const courseIndex = beginnerCourse.findIndex((step) => step.id === lesson.id);
+  const step = beginnerCourse[courseIndex];
   root.innerHTML = `<a class="back-link" href="#library">図鑑の一覧へ</a><div class="lib-heading"><div><small class="group-name"></small><h1></h1><p class="lesson-idea"></p></div><span class="time-tag"></span></div>
+    <nav class="lesson-jumps" aria-label="この教材の学び方"><button data-section="#observeHeading">動きを見る</button><button data-section="#sourceHeading">コードを読む</button><button data-section="#quizHeading">理解度をチェック</button></nav>
+    <div class="study-grid"><section class="study-panel experiment"><h2 tabindex="-1" id="observeHeading">動きを予想する</h2><p class="observation-prompt"></p>
+    <div class="trace-area"><h3 id="traceName"></h3><div id="traceState"></div></div><label class="step-label" for="traceSeek">ステップ <output id="traceCount"></output></label><input type="range" id="traceSeek" min="0" value="0"><div class="actions"><button id="tracePrev">戻る</button><button id="traceNext" class="primary">進む</button><button id="tracePlay">再生</button><button id="traceEnd">結果へ</button></div>
+    <p class="answer-line">戻り値（関数の答え） <code id="answer"></code></p>
+    <details class="trace-details" id="guideVars" hidden><summary>コードの変数を見る</summary><div></div></details>
+    <details class="trace-details" id="inputSettings"><summary>入力を変えて試す</summary><form><label for="lessonInput">入力データ <small>JSON</small></label><textarea id="lessonInput" rows="3" maxlength="3500" spellcheck="false"></textarea>
+    <div class="actions"><button class="primary">この入力で実行</button><button type="button" id="restoreInput">例に戻す</button></div><p class="input-error" role="alert"></p></form>
+    <details><summary>入力と計算量の読み方</summary><div id="fieldHelp"></div><p>O は入力が増えたときの処理量の増え方です。O(n) は要素数に比例し、O(log n) は候補を半分ずつに減らす場合などに現れます。グラフの V は頂点数、E は辺の数です。計算量は観察用の記録を除いたものです。</p></details></details></section>
+    <section class="source-panel"><div class="source-head"><h2 tabindex="-1" id="sourceHeading">JavaScript 実装</h2><button id="copySource">コピー</button></div><p>「進む」を押すと、今の手順を記録した行が光ります。observe はその時点の値を図鑑に伝え、return は関数の答えを返します。</p><pre tabindex="0" aria-label="JavaScriptコード"><code id="lessonSource"></code></pre><span id="copyStatus" role="status"></span></section></div>
     <div class="lesson-context"><div><h2>このアルゴリズムでできること</h2><h3 id="caseTitle"></h3><p class="use"></p>
     <div class="actions case-actions"><button type="button" id="caseInput">この実用例で手順を見る</button></div></div><div><h2>覚えておくこと</h2><p class="note"></p></div></div>
-    <div class="study-grid"><section class="study-panel experiment"><h2>実行を観察</h2><form><label for="lessonInput">入力データ <small>JSON</small></label><textarea id="lessonInput" rows="3" maxlength="3500" spellcheck="false"></textarea>
-    <div class="actions"><button class="primary">この入力で実行</button><button type="button" id="restoreInput">例に戻す</button></div><p class="input-error" role="alert"></p></form>
-    <details><summary>入力と計算量の読み方</summary><div id="fieldHelp"></div><p>O は入力が増えたときの処理量の増え方です。O(n) は要素数に比例し、O(log n) は候補を半分ずつに減らす場合などに現れます。グラフの V は頂点数、E は辺の数です。計算量は観察用の記録を除いたものです。</p></details>
-    <div class="trace-area"><h3 id="traceName"></h3><div id="traceState"></div></div><label class="step-label" for="traceSeek">ステップ <output id="traceCount"></output></label><input type="range" id="traceSeek" min="0" value="0"><div class="actions"><button id="tracePlay">再生</button><button id="tracePrev">戻る</button><button id="traceNext">進む</button><button id="traceEnd">結果へ</button></div>
-    <p class="answer-line">戻り値 <code id="answer"></code></p></section>
-    <section class="source-panel"><div class="source-head"><h2>JavaScript 実装</h2><button id="copySource">コピー</button></div><p>色の付いた行で、その時点の変数を記録しています。</p><pre tabindex="0" aria-label="JavaScriptコード"><code id="lessonSource"></code></pre><span id="copyStatus" role="status"></span></section></div>
-    <div id="practiceSlot"></div><div class="lesson-pagination"><a href="#library">全教材を見る</a><a id="nextLesson"></a></div>`;
+    <div id="practiceSlot"></div><div class="lesson-pagination"><a href="#library">全教材を見る</a><button hidden id="retryTrace">図と手順で復習する</button><a id="nextLesson"></a></div>`;
   local("h1").textContent = lesson.title;
-  local(".group-name").textContent = lesson.group;
+  local(".group-name").textContent = step ? `入門コース · 第${courseIndex + 1}歩 / ${beginnerCourse.length}　${step.goal}` : lesson.group;
+  local(".observation-prompt").textContent = step?.prompt ?? observationPrompts[lesson.id];
+  local("#guideVars").hidden = !step;
+  local(".lesson-idea").textContent = step?.intro ?? lesson.idea;
   for (const [selector, key] of [
-    [".lesson-idea", "idea"],
     [".time-tag", "time"],
     [".note", "note"],
   ])
@@ -144,7 +152,6 @@ function showLesson(lesson) {
     link.href = "#apply/" + lesson.id;
     local(".case-actions").prepend(link);
   }
-  const next = catalog[catalog.indexOf(lesson) + 1];
   const meaning = {
     values: "調べる数列",
     target: "探す値または目標の和",
@@ -173,11 +180,33 @@ function showLesson(lesson) {
   };
   for (const key of Object.keys(lesson.example))
     local("#fieldHelp").append(el("p", "", key + " — " + meaning[key]));
-  const nextLink = local("#nextLesson");
-  if (next) {
-    nextLink.href = "#learn/" + next.id;
-    nextLink.textContent = "次の教材 · " + next.title;
-  } else nextLink.remove();
+  function updateNext() {
+    const nextLink = local("#nextLesson");
+    const status = progressFor(lesson.id);
+    local("#retryTrace").hidden = status !== "review";
+    if (step) {
+      const nextStep = beginnerCourse[courseIndex + 1];
+      const remaining = beginnerCourse.find((item) => progressFor(item.id) !== "learned");
+      const onward = status === "learned" ? remaining : nextStep;
+      const title = catalog.find((entry) => entry.id === onward?.id)?.title;
+      nextLink.href = onward ? "#learn/" + onward.id : remaining ? "#library" : "#lab/observe";
+      nextLink.textContent = onward ? "入門コースを続ける · " + title : remaining ? "コースの進み具合を見る" : "4教材クリア！ 探索ラボで試す →";
+    } else {
+      const next = catalog[catalog.indexOf(lesson) + 1];
+      nextLink.hidden = !next;
+      if (next) {
+        nextLink.href = "#learn/" + next.id;
+        nextLink.textContent = "次の教材 · " + next.title;
+      }
+    }
+  }
+  function focusSection(selector) {
+    const target = local(selector);
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ block: "start" });
+  }
+  for (const button of root.querySelectorAll(".lesson-jumps button"))
+    button.onclick = () => focusSection(button.dataset.section);
   const input = local("#lessonInput"),
     seek = local("#traceSeek"),
     source = local("#lessonSource");
@@ -195,12 +224,15 @@ function showLesson(lesson) {
     local("#tracePlay").textContent = playback ? "一時停止" : "再生";
     const state = local("#traceState");
     state.replaceChildren();
-    const diagram = graphView(lesson.id, trace.frames[0].state, frame.state);
+    const initial = trace.frames[0].state;
+    const diagram = step ? courseDiagram(lesson.id, trace, index, !playback) : graphView(lesson.id, initial, frame.state);
     if (diagram) state.append(diagram);
+    const variables = step ? local("#guideVars div") : state;
+    if (step) variables.replaceChildren();
     let firstArray = true;
     for (const [name, value] of Object.entries(frame.state)) {
       if (name === "dp" && ["lcs", "edit"].includes(lesson.id) && Number.isInteger(frame.state.i)) {
-        state.append(matrix(value, frame.state.i, frame.state.j, trace.frames[0].state));
+        variables.append(matrix(value, frame.state.i, frame.state.j, initial));
         continue;
       }
       const row = el("div", "var-row");
@@ -214,7 +246,7 @@ function showLesson(lesson) {
         firstArray = false;
         row.append(cells);
       } else row.append(el("code", "", valueText(value)));
-      state.append(row);
+      variables.append(row);
     }
     for (let i = 0; i < source.children.length; i++)
       source.children[i].classList.toggle("current", i === frame.line);
@@ -270,7 +302,11 @@ function showLesson(lesson) {
   local("#caseInput").onclick = () => {
     input.value = JSON.stringify(scenario.input);
     run();
-    local("#traceNext").focus();
+    focusSection("#observeHeading");
+  };
+  local("#retryTrace").onclick = () => {
+    go(0);
+    focusSection("#observeHeading");
   };
   local("#traceNext").onclick = () => go(index + 1);
   local("#tracePrev").onclick = () => go(index - 1);
@@ -305,7 +341,11 @@ function showLesson(lesson) {
     }
   };
   run();
-  practice(local("#practiceSlot"), lesson, updateMastery);
+  practice(local("#practiceSlot"), lesson, () => {
+    updateMastery();
+    updateNext();
+  });
+  updateNext();
   if (drills.some((d) => d.id === lesson.id)) {
     const link = el("a", "text-link", "このアルゴリズムの実装ドリルへ");
     link.href = "#drill/" + lesson.id;

@@ -234,7 +234,7 @@ function record(id, status) {
 export function practice(slot, lesson, onChange) {
   const [question, options, correct, reason] = questions[lesson.id];
   slot.innerHTML =
-    '<section class="practice-card"><h2>理解度チェック</h2><p class="prompt"></p><div class="actions"></div><p class="check-answer" role="status"></p></section>';
+    '<section class="practice-card"><h2 tabindex="-1" id="quizHeading">理解度チェック</h2><p class="prompt"></p><div class="actions"></div><p class="check-answer" role="status"></p></section>';
   slot.querySelector(".prompt").textContent = question;
   const answer = slot.querySelector(".check-answer");
   if (progressFor(lesson.id) === "learned")
