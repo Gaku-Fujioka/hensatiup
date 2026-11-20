@@ -123,6 +123,25 @@
             </div>
           </div>
           <p class="narration" id="narration"></p>
+          <section id="frontierLab" class="frontier-lab" aria-labelledby="frontierHeading" hidden>
+            <div class="frontier-heading">
+              <h2 id="frontierHeading">探索キューの比較実験</h2>
+              <button type="button" id="frontierEnd">最後まで比較</button>
+            </div>
+            <p>次に調べるマスをどう選ぶ？ 地図を1手進めると、2つの実装が候補の優先順位を比べた累計回数が変わります。</p>
+            <dl class="frontier-counts">
+              <div><dt>線形走査</dt><dd><span class="frontier-track" aria-hidden="true"><i id="scanBar"></i></span><b id="scanCount"></b></dd></div>
+              <div><dt>二分ヒープ</dt><dd><span class="frontier-track" aria-hidden="true"><i id="heapBar"></i></span><b id="heapCount"></b></dd></div>
+            </dl>
+            <p id="frontierSummary"></p>
+            <details>
+              <summary>仕組みと実際のJavaScriptを見る</summary>
+              <p>線形走査は候補全体から最小を選びます。二分ヒープは最小を根に置き、追加・取り出し・優先度の更新で親子関係を直します。候補が k 件のとき、取り出しはそれぞれ O(k) と O(log k) です。</p>
+              <p>同点は先に発見したマスを優先します。棒は両方式が異なる候補の順位を比べた回数です。同じマスの古いコストとの照合や、描画用の記録は含みません。</p>
+              <label>表示する実装 <select id="frontierSource"><option value="heap">二分ヒープ</option><option value="scan">線形走査</option></select></label>
+              <pre tabindex="0" aria-label="探索キューのJavaScript"><code id="frontierCode"></code></pre>
+            </details>
+          </section>
           <div id="cellInfo" class="sr" aria-live="polite"></div>
         </section>
         <aside id="sidebar"></aside>

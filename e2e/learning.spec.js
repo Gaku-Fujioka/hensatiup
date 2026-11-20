@@ -1,5 +1,33 @@
 import { test, expect } from "@playwright/test";
 
+test("compare live queue counts, rewind, change the terrain and inspect the implementation", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/");
+  await page.getByRole("link", { name: "探索キューの比較実験" }).click();
+  await expect(page.locator("#heapCount")).toHaveText("0 回");
+  await page.locator("#next").click();
+  await expect(page.locator("#heapCount")).not.toHaveText("0 回");
+  await page.locator("#frontierEnd").click();
+  await expect(page.locator("#scanCount")).toHaveText("450 回");
+  await expect(page.locator("#heapCount")).toHaveText("371 回");
+  await expect(page.locator("#frontierSummary")).toContainText("79回少ない");
+  await page.locator("#rewind").click();
+  await expect(page.locator("#scanCount")).toHaveText("0 回");
+  await page.locator("#preset").selectOption("sand");
+  await page.getByRole("button", { name: /A\* 探索/ }).click();
+  await page.locator("#frontierEnd").click();
+  await expect(page.locator("#scanCount")).toHaveText("397 回");
+  await expect(page.locator("#heapCount")).toHaveText("293 回");
+  await page.locator("#frontierLab summary").click();
+  await expect(page.locator("#frontierCode")).toContainText("class HeapFrontier");
+  await page.locator("#frontierSource").selectOption("scan");
+  await expect(page.locator("#frontierCode")).toContainText("class LinearFrontier");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+  await page.locator("#rescueMode").click();
+  await expect(page.locator("#frontierLab")).toBeHidden();
+  await expect(page.locator("#missionBoard")).toBeVisible();
+});
+
 test("algorithm selection, trace seeking, playback, predictions and map editing", async ({
   page,
 }) => {

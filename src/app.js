@@ -1,5 +1,6 @@
 import { maps } from "./maps.js";
 import { explore, rules } from "./search.js";
+import { HeapFrontier, LinearFrontier } from "./frontier.js";
 import { lessons } from "./lessons.js";
 import { draw, coordinates, boardLabel } from "./atlas.js";
 import { openLibrary, stopLibrary } from "./library.js";
@@ -37,6 +38,7 @@ let labMap = map;
 const editedMaps = new Map([[map.id, map]]);
 const choices = Object.entries(lessons);
 let labView = "rescue";
+let scanResult;
 const rescue = new RescueControl(renderBoard, labMaps.at(-1).day, () => {
   selectMap(labMaps[(labMaps.findIndex((region) => region.id === map.id) + 1) % labMaps.length].id);
   $("launch").focus();
@@ -58,6 +60,7 @@ function renderBoard() {
   const last = result.frames.length - 1;
   const frame = result.frames[step];
   draw(canvas, map, result, step, cursor);
+  if (mode === "lab" && labView === "study") renderFrontier();
   $("status").textContent = timer
     ? "再生中"
     : step === last
@@ -98,6 +101,28 @@ function go(to) {
   step = Math.min(result.frames.length - 1, Math.max(0, to));
   renderBoard();
 }
+
+function renderFrontier() {
+  const heap = result.frames[step].comparisons;
+  const scan = scanResult.frames[step].comparisons;
+  const max = Math.max(1, result.frames.at(-1).comparisons, scanResult.frames.at(-1).comparisons);
+  $("heapBar").style.width = (100 * heap / max) + "%";
+  $("scanBar").style.width = (100 * scan / max) + "%";
+  $("heapCount").textContent = heap + " 回";
+  $("scanCount").textContent = scan + " 回";
+  $("frontierEnd").disabled = step === result.frames.length - 1;
+  const difference = Math.abs(scan - heap);
+  const comparison = difference
+    ? (heap < scan ? "二分ヒープ" : "線形走査") + "の方が" + difference + "回少ない"
+    : "比較回数は同じ";
+  $("frontierSummary").textContent = lessons[algorithm].title + " · " + step + "マス探索時点で" + comparison + "。";
+}
+$("frontierEnd").onclick = () => go(result.frames.length - 1);
+function showFrontierSource() {
+  $("frontierCode").textContent = ($("frontierSource").value === "heap" ? HeapFrontier : LinearFrontier).toString();
+}
+$("frontierSource").onchange = showFrontierSource;
+showFrontierSource();
 function play() {
   if (timer) {
     pause();
@@ -195,6 +220,9 @@ function lab() {
 }
 function render() {
   const expedition = planning();
+  const observing = mode === "lab" && labView === "study";
+  $("frontierLab").hidden = !observing;
+  if (observing) scanResult = explore(map, rules[algorithm], LinearFrontier);
   $("missionBoard").hidden = !expedition;
   $("radioSource").hidden = !expedition;
   if (!expedition) canvas.setAttribute("aria-describedby", "cellInfo");
@@ -237,6 +265,7 @@ function render() {
         pause();
         rescue.leave();
         labView = "study";
+        history.replaceState(null, "", "#lab/observe");
         editing = !editing;
         render();
         document.getElementById("edit").focus();
@@ -261,20 +290,11 @@ function render() {
   canvas.classList.toggle("editing", editing && mode === "lab");
   renderBoard();
 }
-function chooseView(view) {
-  pause();
-  rescue.leave();
-  editing = false;
-  labView = view;
-  step = 0;
-  cursor = null;
-  render();
-}
 $("rescueMode").onclick = () => {
-  if (!planning()) chooseView("rescue");
+  if (!planning()) location.hash = "#lab";
 };
 $("studyMode").onclick = () => {
-  if (planning()) chooseView("study");
+  if (planning()) location.hash = "#lab/observe";
 };
 function selectMap(id) {
   if (id === map.id) return;
@@ -395,6 +415,8 @@ function openPage() {
   $("navLibrary").removeAttribute("aria-current");
   mode = location.hash === "#mission" ? "mission" : "lab";
   const mission = mode === "mission";
+  labView = location.hash === "#lab/observe" ? "study" : "rescue";
+  editing = false;
   map = mission ? maps.find((m) => m.id === activeMission().map) : labMap;
   preset.value = map.id;
   preset.disabled = mission;
