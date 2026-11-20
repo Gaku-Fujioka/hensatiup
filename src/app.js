@@ -423,7 +423,7 @@ function openPage() {
   const learning =
     ["", "#library", "#compare"].includes(location.hash) ||
     location.hash.startsWith("#learn/") ||
-    location.hash.startsWith("#drill/");
+    location.hash.startsWith("#drill/") || location.hash.startsWith("#apply/");
   $("library").hidden = !learning;
   $("routeLab").hidden = learning;
   if (learning) {

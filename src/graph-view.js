@@ -6,7 +6,7 @@ function shape(tag, attrs, label) {
   if (label !== undefined) node.textContent = label;
   return node;
 }
-export function graphView(id, input, state) {
+export function graphView(id, input, state, { names, highlighted } = {}) {
   if (!["bfs", "dfs", "dijkstra", "topological", "kruskal", "union", "inorder", "astar"].includes(id))
     return null;
   const svg = shape("svg", { viewBox: "0 0 320 170", role: "img", "aria-label": "入力の構造と注目位置" });
@@ -60,7 +60,7 @@ export function graphView(id, input, state) {
     });
     edges = labels.flatMap((v, i) => (i && v !== null ? [[Math.floor((i - 1) / 2), i]] : []));
   } else {
-    labels = Array.from({ length: input.n }, (_, i) => i);
+    labels = names ?? Array.from({ length: input.n }, (_, i) => i);
     edges = input.edges;
     positions = labels.map((_, i) => {
       const angle = (i / input.n) * 2 * Math.PI - Math.PI / 2;
@@ -87,8 +87,9 @@ export function graphView(id, input, state) {
       dx = u - x,
       dy = v - y,
       len = Math.hypot(dx, dy) || 1;
-    const stroke = state.from === a && state.to === b ? "#b7802a" : "#84998c";
-    const attrs = { stroke, "stroke-width": 1.6, fill: "none" };
+    const selected = highlighted?.some(([from, to]) => from === a && to === b);
+    const stroke = state.from === a && state.to === b ? "#b7802a" : selected ? "#327254" : "#84998c";
+    const attrs = { stroke, "stroke-width": selected ? 3.6 : 1.6, fill: "none" };
     if (directed) attrs["marker-end"] = "url(#edgeTip)";
     const d =
       a === b
@@ -116,7 +117,7 @@ export function graphView(id, input, state) {
     if (labels[i] === null) return;
     const active = [state.node, state.index, state.from, state.to].includes(i);
     svg.append(
-      shape("circle", { cx: x, cy: y, r: 11, fill: active ? "#e7ba6b" : "#e0ecdd", stroke: "#547360" }),
+      shape("circle", { cx: x, cy: y, r: names ? 19 : 11, fill: active ? "#e7ba6b" : "#e0ecdd", stroke: "#547360" }),
       shape("text", { x, y: y + 4, "text-anchor": "middle", "font-size": 11, fill: "#20392d" }, labels[i]),
     );
   });

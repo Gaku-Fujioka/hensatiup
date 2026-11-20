@@ -118,8 +118,10 @@ function knapsack({ weights, profits, capacity }, observe = () => {}) {
   const dp = Array(capacity + 1).fill(0);
   for (let item = 0; item < weights.length; item++) {
     for (let space = capacity; space >= weights[item]; space--) {
-      dp[space] = Math.max(dp[space], dp[space - weights[item]] + profits[item]);
-      observe("品物を入れるか比較", { dp, item, space }, [space]);
+      const candidate = dp[space - weights[item]] + profits[item];
+      const take = candidate > dp[space];
+      if (take) dp[space] = candidate;
+      observe("品物を入れるか比較", { dp, item, space, take }, [space]);
     }
   }
   return dp[capacity];
