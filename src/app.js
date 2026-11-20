@@ -17,9 +17,7 @@ for (let x = 0; x < maps[0].cols; x++)
     }),
   );
 for (let y = 1; y <= maps[0].rows; y++)
-  $("rowLabels").append(
-    Object.assign(document.createElement("span"), { textContent: y }),
-  );
+  $("rowLabels").append(Object.assign(document.createElement("span"), { textContent: y }));
 
 let map = structuredClone(maps[0]);
 let algorithm = "bfs";
@@ -34,9 +32,7 @@ let labMap = map;
 const editedMaps = new Map([[map.id, map]]);
 const choices = Object.entries(lessons);
 function analyse() {
-  results = Object.fromEntries(
-    Object.entries(rules).map(([key, rule]) => [key, explore(map, rule)]),
-  );
+  results = Object.fromEntries(Object.entries(rules).map(([key, rule]) => [key, explore(map, rule)]));
   result = results[algorithm];
   step = 0;
 }
@@ -55,11 +51,7 @@ function renderBoard() {
         ? "一時停止"
         : "待機中";
   $("status").dataset.on = String(Boolean(timer));
-  $("play").textContent = timer
-    ? "Ⅱ　停止"
-    : step === last
-      ? "↺　もう一度"
-      : "▶　再生";
+  $("play").textContent = timer ? "Ⅱ　停止" : step === last ? "↺　もう一度" : "▶　再生";
   $("prev").disabled = $("rewind").disabled = step === 0;
   $("next").disabled = step === last;
   $("seek").max = last;
@@ -70,11 +62,7 @@ function renderBoard() {
       ? "出発地 S から探索を始めます。再生するか、1ステップずつ進めてください。"
       : step === last
         ? result.path.length
-          ? "目的地 G に到着。経路は" +
-            result.steps +
-            "歩、合計コストは" +
-            result.cost +
-            "です。"
+          ? "目的地 G に到着。経路は" + result.steps + "歩、合計コストは" + result.cost + "です。"
           : "すべての候補を調べました。目的地へ通れる経路はありません。"
         : coordinates(map, frame.current) +
           " を探索。ここまでのコストは" +
@@ -171,7 +159,9 @@ function lab() {
     lessons[algorithm].heading +
     "</h2><p>" +
     lessons[algorithm].detail +
-    '</p><p><a class="text-link" href="#learn/'+algorithm+'">JavaScript実装と変数を見る</a></p><a class="text-link" href="#mission">配送ミッションで使う</a></section>';
+    '</p><p><a class="text-link" href="#learn/' +
+    algorithm +
+    '">JavaScript実装と変数を見る</a></p><a class="text-link" href="#mission">配送ミッションで使う</a></section>';
   for (const button of document.querySelectorAll("[data-rule]"))
     button.onclick = () => {
       pause();
@@ -222,9 +212,7 @@ function render() {
 }
 preset.onchange = () => {
   pause();
-  map =
-    editedMaps.get(preset.value) ??
-    structuredClone(maps.find((m) => m.id === preset.value));
+  map = editedMaps.get(preset.value) ?? structuredClone(maps.find((m) => m.id === preset.value));
   editedMaps.set(map.id, map);
   cursor = null;
   analyse();
@@ -242,17 +230,11 @@ canvas.onclick = (e) => {
   const rect = canvas.getBoundingClientRect();
   const x = Math.max(
     0,
-    Math.min(
-      map.cols - 1,
-      Math.floor(((e.clientX - rect.left) * map.cols) / rect.width),
-    ),
+    Math.min(map.cols - 1, Math.floor(((e.clientX - rect.left) * map.cols) / rect.width)),
   );
   const y = Math.max(
     0,
-    Math.min(
-      map.rows - 1,
-      Math.floor(((e.clientY - rect.top) * map.rows) / rect.height),
-    ),
+    Math.min(map.rows - 1, Math.floor(((e.clientY - rect.top) * map.rows) / rect.height)),
   );
   cursor = y * map.cols + x;
   applyBrush(cursor);
@@ -290,7 +272,10 @@ function openPage() {
   cursor = null;
   if (mode === "lab") labMap = map;
   stopLibrary();
-  const learning = ["", "#library", "#compare"].includes(location.hash) || location.hash.startsWith("#learn/");
+  const learning =
+    ["", "#library", "#compare"].includes(location.hash) ||
+    location.hash.startsWith("#learn/") ||
+    location.hash.startsWith("#drill/");
   $("library").hidden = !learning;
   $("routeLab").hidden = learning;
   if (learning) {
