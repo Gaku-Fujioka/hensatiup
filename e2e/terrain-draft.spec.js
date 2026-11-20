@@ -1,0 +1,35 @@
+import { test, expect } from "@playwright/test";
+
+test("resume a draft, undo a reset, and play the original rescue mission", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await page.goto("/#lab/observe");
+  await page.getByRole("button", { name: "地図を編集" }).click();
+  await page.getByRole("button", { name: "目的地", exact: true }).click();
+  const board = page.locator("#map");
+  const bfsSteps = page.locator("#lower tbody tr").first().locator("td").nth(1);
+  await board.focus();
+  await board.press("ArrowRight");
+  await board.press("Enter");
+  await expect(bfsSteps).toHaveText("1");
+  await board.press("Control+z");
+  await expect(bfsSteps).toHaveText("12");
+  await board.press("Control+Shift+z");
+  await expect(bfsSteps).toHaveText("1");
+  await page.reload();
+  await expect(bfsSteps).toHaveText("12");
+  await page.getByRole("button", { name: "地図を編集" }).click();
+  await expect(page.locator("#editor")).toContainText("下書きから再開");
+  await expect(bfsSteps).toHaveText("1");
+  await page.getByRole("button", { name: "元の地形に戻す" }).click();
+  await expect(bfsSteps).toHaveText("12");
+  await page.getByRole("button", { name: "1手戻す" }).click();
+  await expect(bfsSteps).toHaveText("1");
+  await page.locator("#rescueMode").click();
+  await expect(page.locator("#bestFuel")).toHaveText("訓練走行");
+  await page.locator('[data-region="river"]').click();
+  await expect(page.locator("#launch")).toHaveText("任務を受ける");
+  await expect(bfsSteps).toHaveText("12");
+  await page.getByRole("button", { name: "地図を編集" }).click();
+  await expect(bfsSteps).toHaveText("1");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+});

@@ -19,13 +19,22 @@ export function paint(map, cell) {
   map.cells[cell] = brush;
   return true;
 }
-export function editor(container, editing, toggle, reset) {
+const draftMessages = {
+  ready: "地図を変えると、このブラウザに下書きを保存します。",
+  restored: "保存した下書きから再開しました。",
+  saved: "下書きを保存しました。",
+  original: "元の地形に戻りました。下書きもリセットしました。",
+  invalid: "下書きを読み込めなかったため、元の地形を開きました。",
+  session: "このブラウザに保存できません。編集内容はこのタブで使えます。",
+};
+
+export function editor(container, editing, draft, toggle, change) {
   container.innerHTML =
     '<div class="title-line"><h2>地図エディタ</h2><button id="edit" aria-pressed="' +
     editing +
     '">' +
     (editing ? "編集を終了" : "地図を編集") +
-    "</button></div><p>平地はコスト1、砂地は4。森と水辺は通れません。地形を変えて、配送ルートを比べてみましょう。</p>";
+    "</button></div><p>平地はコスト1、砂地は4。森と水辺は通れません。保存した下書きは「地図を編集」で再開できます。</p>";
   container.querySelector("#edit").onclick = toggle;
   if (!editing) return;
   const palette = document.createElement("div");
@@ -45,12 +54,28 @@ export function editor(container, editing, toggle, reset) {
   const hint = document.createElement("p");
   hint.className = "hint";
   hint.textContent =
-    "種類を選んで地図のマスをクリック。キーボードでは地図にフォーカスし、矢印で移動、Enterで配置します。";
+    "地図をクリックするか、矢印キーで移動してEnterで配置します。地図上でCtrl / ⌘ + Zで取り消し、Shiftを加えるとやり直せます。";
   container.append(hint);
-  const undo = document.createElement("button");
-  undo.textContent = "元の地形に戻す";
-  undo.onclick = reset;
-  container.append(undo);
+  const actions = document.createElement("div");
+  actions.className = "tools";
+  for (const [action, label, enabled] of [
+    ["undo", "1手戻す", draft.canUndo],
+    ["redo", "やり直す", draft.canRedo],
+    ["reset", "元の地形に戻す", draft.layout !== draft.base],
+  ]) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.id = "terrain-" + action;
+    button.textContent = label;
+    button.disabled = !enabled;
+    button.onclick = () => change(action);
+    actions.append(button);
+  }
+  const status = document.createElement("p");
+  status.className = "hint";
+  status.setAttribute("aria-live", "polite");
+  status.textContent = draftMessages[draft.status];
+  container.append(actions, status);
 }
 
 const questions = {

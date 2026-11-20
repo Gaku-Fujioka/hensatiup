@@ -5,6 +5,7 @@ import { lessons } from "./lessons.js";
 import { draw, coordinates, boardLabel } from "./atlas.js";
 import { openLibrary, stopLibrary } from "./library.js";
 import { editor, paint, quiz } from "./editor.js";
+import { TerrainDraft } from "./terrain-draft.js";
 import { activeMission, completed, showWorkshop } from "./workshop.js";
 import { RescueControl } from "./rescue-control.js";
 import { makeDailyMap } from "./daily-map.js";
@@ -14,8 +15,11 @@ const $ = (id) => document.getElementById(id);
 const canvas = $("map");
 const preset = $("preset");
 const labMaps = [...maps, makeDailyMap()];
+let draftStorage;
+try { draftStorage = window.localStorage; } catch { /* Editors can still work in memory. */ }
+const drafts = new Map(labMaps.map((region) => [region.id, new TerrainDraft(region, draftStorage)]));
 labMaps.forEach((map) => preset.add(new Option(map.name, map.id)));
-mountMissionBoard(labMaps, selectMap);
+mountMissionBoard(labMaps, selectOfficialMap);
 for (let x = 0; x < maps[0].cols; x++)
   $("colLabels").append(
     Object.assign(document.createElement("span"), {
@@ -40,7 +44,7 @@ const choices = Object.entries(lessons);
 let labView = "rescue";
 let scanResult;
 const rescue = new RescueControl(renderBoard, labMaps.at(-1).day, () => {
-  selectMap(labMaps[(labMaps.findIndex((region) => region.id === map.id) + 1) % labMaps.length].id);
+  selectOfficialMap(labMaps[(labMaps.findIndex((region) => region.id === map.id) + 1) % labMaps.length].id);
   $("launch").focus();
 });
 const planning = () => mode === "lab" && labView === "rescue";
@@ -261,21 +265,21 @@ function render() {
     editor(
       $("editor"),
       editing,
+      drafts.get(map.id),
       () => {
         pause();
         rescue.leave();
         labView = "study";
         history.replaceState(null, "", "#lab/observe");
         editing = !editing;
-        render();
+        if (editing) showMap(drafts.get(map.id).open());
+        else render();
         document.getElementById("edit").focus();
       },
-      () => {
-        pause();
-        map = structuredClone(labMaps.find((m) => m.id === map.id));
-        editedMaps.set(map.id, map);
-        analyse();
-        render();
+      (action) => {
+        editHistory(action);
+        const button = $("terrain-" + action);
+        (button.disabled ? $("edit") : button).focus();
       },
     );
   } else {
@@ -298,11 +302,24 @@ $("studyMode").onclick = () => {
 };
 function selectMap(id) {
   if (id === map.id) return;
-  preset.value = id;
+  const draft = drafts.get(id);
+  showMap(editing ? draft.open() : editedMaps.get(id) ?? structuredClone(draft.original));
+}
+function selectOfficialMap(id) {
+  const original = drafts.get(id).original;
+  if (id === map.id && rescue.official) return;
+  showMap(structuredClone(original));
+}
+function editHistory(action) {
+  const draft = drafts.get(map.id);
+  showMap(draft[action](), cursor);
+}
+function showMap(next, selectedCell = null) {
   pause();
-  map = editedMaps.get(id) ?? structuredClone(labMaps.find((m) => m.id === id));
+  map = next;
+  preset.value = map.id;
   editedMaps.set(map.id, map);
-  cursor = null;
+  cursor = selectedCell;
   analyse();
   render();
 }
@@ -310,6 +327,7 @@ preset.onchange = () => selectMap(preset.value);
 function applyBrush(cell) {
   if (!editing || mode !== "lab") return;
   if (paint(map, cell)) {
+    drafts.get(map.id).record(map);
     pause();
     analyse();
     render();
@@ -362,6 +380,11 @@ canvas.onblur = () => {
   renderBoard();
 };
 canvas.onkeydown = (e) => {
+  if (editing && mode === "lab" && (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+    e.preventDefault();
+    editHistory(e.shiftKey ? "redo" : "undo");
+    return;
+  }
   const pos = planning() ? rescue.route.at(-1) : (cursor ?? map.start),
     col = pos % map.cols;
   const moves = {
