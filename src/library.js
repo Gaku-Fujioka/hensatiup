@@ -1,6 +1,7 @@
 import { catalog } from "./catalog.js";
 import { runLesson } from "./trace.js";
 import { graphView } from "./graph-view.js";
+import { comparisonView, mastery, practice, progressFor } from "./study-tools.js";
 
 const root = document.getElementById("library");
 const el = (tag, className, text) => {
@@ -9,133 +10,289 @@ const el = (tag, className, text) => {
   if (text !== undefined) node.textContent = text;
   return node;
 };
-const local = selector => root.querySelector(selector);
+const local = (selector) => root.querySelector(selector);
 function matrix(values, i, j, input) {
-  const table=el("table","dp-matrix");
-  table.setAttribute("aria-label","部分問題の計算表");
-  const head=table.createTHead().insertRow();
-  for(const label of ["行／列","∅",...input.b]) head.append(el("th","",label));
-  const body=table.createTBody();
-  values.forEach((row,r)=>{
-    const tr=body.insertRow();
-    tr.append(el("th","",r ? [...input.a][r-1] : "∅"));
-    row.forEach((v,c)=>{
-      const ready=!r||!c||r<i||(r===i&&c<=j);
-      tr.append(el("td",r===i&&c===j?"current":"",ready?v:"·"));
+  const table = el("table", "dp-matrix");
+  table.setAttribute("aria-label", "部分問題の計算表");
+  const head = table.createTHead().insertRow();
+  for (const label of ["行／列", "∅", ...input.b]) head.append(el("th", "", label));
+  const body = table.createTBody();
+  values.forEach((row, r) => {
+    const tr = body.insertRow();
+    tr.append(el("th", "", r ? [...input.a][r - 1] : "∅"));
+    row.forEach((v, c) => {
+      const ready = !r || !c || r < i || (r === i && c <= j);
+      tr.append(el("td", r === i && c === j ? "current" : "", ready ? v : "·"));
     });
   });
-  const scroll=el("div","matrix-scroll");scroll.append(table);return scroll;
+  const scroll = el("div", "matrix-scroll");
+  scroll.append(table);
+  return scroll;
 }
-const valueText = value => typeof value === "string" ? value : typeof value === "number" && !Number.isFinite(value) ? "∞" : JSON.stringify(value);
-let query = "", group = "すべて", playback;
-export function stopLibrary() { clearInterval(playback); playback = null; }
+const valueText = (value) =>
+  typeof value === "string"
+    ? value
+    : typeof value === "number" && !Number.isFinite(value)
+      ? "∞"
+      : JSON.stringify(value);
+let query = "",
+  group = "すべて",
+  progress = "",
+  playback;
+const importedInputs = new Map();
+const states = { learned: "正解済み", review: "要復習" };
+function updateMastery() {
+  document.getElementById("progress").textContent = mastery() + " / " + catalog.length;
+}
+export function stopLibrary() {
+  clearInterval(playback);
+  playback = null;
+}
 
 function list() {
   root.innerHTML = `<div class="lib-heading"><div><h1>アルゴリズム図鑑</h1><p>考え方を読み、入力を変えて、コードの動きを確かめよう。</p></div></div>
     <a class="feature-lesson" href="#learn/binary"><div><small>最初のレッスン</small><h2>二分探索</h2><p>中央の値を見ると、なぜ候補が半分になる？</p></div><div class="feature-cells" aria-hidden="true"><i>1</i><i>3</i><i>4</i><i>7</i><i>11</i></div></a>
-    <div class="catalog-tools"><label>教材を検索<input type="search" placeholder="例：ソート、区間、名簿" id="findLesson"></label><label>分野<select id="lessonGroup"></select></label></div>
+    <div class="library-extras"><a class="text-link" href="#compare">ソート比較実験</a><span>同じ入力で6方式の比較回数を測る</span></div>
+    <div class="catalog-tools"><label>教材を検索<input type="search" placeholder="例：ソート、区間、名簿" id="findLesson"></label><label>分野<select id="lessonGroup"></select></label><label>学習状況<select id="studyFilter"><option value="">すべて</option><option value="review">要復習</option><option value="learned">正解済み</option><option value="new">未回答</option></select></label></div>
     <p class="catalog-count" role="status"></p><div class="catalog-grid"></div>`;
-  const search = local("#findLesson"), select = local("#lessonGroup");
-  for (const name of ["すべて", ...new Set(catalog.map(l=>l.group))]) select.add(new Option(name,name));
-  search.value=query;select.value=group;
+  const search = local("#findLesson"),
+    select = local("#lessonGroup");
+  for (const name of ["すべて", ...new Set(catalog.map((l) => l.group))]) select.add(new Option(name, name));
+  search.value = query;
+  select.value = group;
+  local("#studyFilter").value = progress;
   function filter() {
-    const grid=local(".catalog-grid");
+    const grid = local(".catalog-grid");
     grid.replaceChildren();
-    const term=query.trim().toLowerCase();
+    const term = query.trim().toLowerCase();
     for (const lesson of catalog) {
-      if ((group!=="すべて" && group!==lesson.group) ||
-        ![lesson.title,lesson.group,lesson.id,lesson.idea,lesson.use,lesson.solve.name].join(" ").toLowerCase().includes(term)) continue;
-      const card=el("a","lesson-card");
-      card.href="#learn/"+lesson.id;
-      card.append(el("small","group-name",lesson.group),el("h2","",lesson.title),el("p","",lesson.use),el("span","time-tag",lesson.time));
+      const status = progressFor(lesson.id) || "new";
+      if (progress && progress !== status) continue;
+      if (
+        (group !== "すべて" && group !== lesson.group) ||
+        ![lesson.title, lesson.group, lesson.id, lesson.idea, lesson.use, lesson.solve.name]
+          .join(" ")
+          .toLowerCase()
+          .includes(term)
+      )
+        continue;
+      const card = el("a", "lesson-card");
+      card.href = "#learn/" + lesson.id;
+      card.append(
+        el("small", "group-name", lesson.group),
+        el("h2", "", lesson.title),
+        el("p", "", lesson.use),
+        el("span", "time-tag", lesson.time),
+      );
+      if (states[status]) card.append(el("span", "study-status", states[status]));
       grid.append(card);
     }
-    local(".catalog-count").textContent=grid.children.length+" / "+catalog.length+" 教材";
-    if(!grid.children.length) grid.append(el("p","","一致する教材がありません。分野や検索語を変えてみてください。"));
+    local(".catalog-count").textContent = grid.children.length + " / " + catalog.length + " 教材";
+    if (!grid.children.length)
+      grid.append(el("p", "", "一致する教材がありません。分野や検索語を変えてみてください。"));
   }
-  search.oninput=()=>{query=search.value;filter();};select.onchange=()=>{group=select.value;filter();};
+  search.oninput = () => {
+    query = search.value;
+    filter();
+  };
+  select.onchange = () => {
+    group = select.value;
+    filter();
+  };
+  local("#studyFilter").onchange = (e) => {
+    progress = e.target.value;
+    filter();
+  };
   filter();
 }
 
 function showLesson(lesson) {
-  root.innerHTML=`<a class="back-link" href="#library">図鑑の一覧へ</a><div class="lib-heading"><div><small class="group-name"></small><h1></h1><p class="lesson-idea"></p></div><span class="time-tag"></span></div>
+  root.innerHTML = `<a class="back-link" href="#library">図鑑の一覧へ</a><div class="lib-heading"><div><small class="group-name"></small><h1></h1><p class="lesson-idea"></p></div><span class="time-tag"></span></div>
     <div class="lesson-context"><div><h2>使いどころ</h2><p class="use"></p></div><div><h2>覚えておくこと</h2><p class="note"></p></div></div>
-    <div class="study-grid"><section class="study-panel experiment"><h2>実行を観察</h2><form><label for="lessonInput">入力データ <small>JSON</small></label><textarea id="lessonInput" rows="3" spellcheck="false"></textarea>
+    <div class="study-grid"><section class="study-panel experiment"><h2>実行を観察</h2><form><label for="lessonInput">入力データ <small>JSON</small></label><textarea id="lessonInput" rows="3" maxlength="3500" spellcheck="false"></textarea>
     <div class="actions"><button class="primary">この入力で実行</button><button type="button" id="restoreInput">例に戻す</button></div><p class="input-error" role="alert"></p></form>
+    <details><summary>入力と計算量の読み方</summary><div id="fieldHelp"></div><p>O は入力が増えたときの処理量の増え方です。O(n) は要素数に比例し、O(log n) は候補を半分ずつに減らす場合などに現れます。グラフの V は頂点数、E は辺の数です。計算量は観察用の記録を除いたものです。</p></details>
     <div class="trace-area"><h3 id="traceName"></h3><div id="traceState"></div></div><label class="step-label" for="traceSeek">ステップ <output id="traceCount"></output></label><input type="range" id="traceSeek" min="0" value="0"><div class="actions"><button id="tracePlay">再生</button><button id="tracePrev">戻る</button><button id="traceNext">進む</button><button id="traceEnd">結果へ</button></div>
     <p class="answer-line">戻り値 <code id="answer"></code></p></section>
     <section class="source-panel"><div class="source-head"><h2>JavaScript 実装</h2><button id="copySource">コピー</button></div><p>色の付いた行で、その時点の変数を記録しています。</p><pre tabindex="0" aria-label="JavaScriptコード"><code id="lessonSource"></code></pre><span id="copyStatus" role="status"></span></section></div>
     <div id="practiceSlot"></div><div class="lesson-pagination"><a href="#library">全教材を見る</a><a id="nextLesson"></a></div>`;
-  local("h1").textContent=lesson.title;local(".group-name").textContent=lesson.group;
-  for (const [selector,key] of [[".lesson-idea","idea"],[".time-tag","time"],[".use","use"],[".note","note"]]) local(selector).textContent=lesson[key];
-  const next=catalog[catalog.indexOf(lesson)+1];
-  const nextLink=local("#nextLesson");
-  if(next){nextLink.href="#learn/"+next.id;nextLink.textContent="次の教材 · "+next.title;}else nextLink.remove();
-  const input=local("#lessonInput"), seek=local("#traceSeek"), source=local("#lessonSource");
-  input.value=JSON.stringify(lesson.example,null,0);
-  let trace, index=0;
+  local("h1").textContent = lesson.title;
+  local(".group-name").textContent = lesson.group;
+  for (const [selector, key] of [
+    [".lesson-idea", "idea"],
+    [".time-tag", "time"],
+    [".use", "use"],
+    [".note", "note"],
+  ])
+    local(selector).textContent = lesson[key];
+  const next = catalog[catalog.indexOf(lesson) + 1];
+  const meaning = {
+    values: "調べる数列",
+    target: "探す値または目標の和",
+    left: "区間の左端（含む）",
+    right: "区間の右端（含まない）",
+    width: "窓の要素数",
+    n: "edges" in lesson.example ? "頂点数" : "項の番号または整数の引数",
+    edges: "辺の配列（重みがある場合は3番目の値）",
+    start: "出発する頂点・マス番号",
+    goal: "到達したい頂点・マス番号",
+    tree: "根から段ごとに並べた値",
+    text: "入力文字列",
+    intervals: "予定ごとの [開始, 終了]",
+    grid: "平地 . と壁 # の地図",
+    a: "1つ目の入力",
+    b: "2つ目の入力",
+    limit: "素数を調べる上限",
+    base: "累乗の底",
+    exponent: "指数",
+    pattern: "探す語",
+    coins: "使える額面",
+    amount: "作りたい金額",
+    weights: "品物ごとの重さ",
+    profits: "品物ごとの価値",
+    capacity: "使える容量",
+  };
+  for (const key of Object.keys(lesson.example))
+    local("#fieldHelp").append(el("p", "", key + " — " + meaning[key]));
+  const nextLink = local("#nextLesson");
+  if (next) {
+    nextLink.href = "#learn/" + next.id;
+    nextLink.textContent = "次の教材 · " + next.title;
+  } else nextLink.remove();
+  const input = local("#lessonInput"),
+    seek = local("#traceSeek"),
+    source = local("#lessonSource");
+  input.value = JSON.stringify(importedInputs.get(lesson.id) ?? lesson.example);
+  importedInputs.delete(lesson.id);
+  let trace,
+    index = 0;
   function show() {
-    const frame=trace.frames[index];
-    seek.value=index;local("#traceCount").textContent=index+" / "+(trace.frames.length-1);
-    local("#traceName").textContent=frame.action;local("#tracePrev").disabled=index===0;
-    local("#traceNext").disabled=local("#traceEnd").disabled=index===trace.frames.length-1;
-    local("#tracePlay").textContent=playback?"一時停止":"再生";
-    const state=local("#traceState");state.replaceChildren();
-    const diagram=graphView(lesson.id,trace.frames[0].state,frame.state);
-    if(diagram)state.append(diagram);
-    let firstArray=true;
-    for(const [name,value] of Object.entries(frame.state)){
-      if(name==="dp" && ["lcs","edit"].includes(lesson.id) && Number.isInteger(frame.state.i)) {
-        state.append(matrix(value,frame.state.i,frame.state.j,trace.frames[0].state));
+    const frame = trace.frames[index];
+    seek.value = index;
+    local("#traceCount").textContent = index + " / " + (trace.frames.length - 1);
+    local("#traceName").textContent = frame.action;
+    local("#tracePrev").disabled = index === 0;
+    local("#traceNext").disabled = local("#traceEnd").disabled = index === trace.frames.length - 1;
+    local("#tracePlay").textContent = playback ? "一時停止" : "再生";
+    const state = local("#traceState");
+    state.replaceChildren();
+    const diagram = graphView(lesson.id, trace.frames[0].state, frame.state);
+    if (diagram) state.append(diagram);
+    let firstArray = true;
+    for (const [name, value] of Object.entries(frame.state)) {
+      if (name === "dp" && ["lcs", "edit"].includes(lesson.id) && Number.isInteger(frame.state.i)) {
+        state.append(matrix(value, frame.state.i, frame.state.j, trace.frames[0].state));
         continue;
       }
-      const row=el("div","var-row");row.append(el("b","var-name",name));
-      if(Array.isArray(value)){
-        const cells=el("div","value-cells");
-        value.forEach((v,i)=>cells.append(el("span",firstArray && frame.active.includes(i)?"active":"",valueText(v))));
-        if(!value.length)cells.append(el("span","","[ ]"));
-        firstArray=false;row.append(cells);
-      }else row.append(el("code","",valueText(value)));
+      const row = el("div", "var-row");
+      row.append(el("b", "var-name", name));
+      if (Array.isArray(value)) {
+        const cells = el("div", "value-cells");
+        value.forEach((v, i) =>
+          cells.append(el("span", firstArray && frame.active.includes(i) ? "active" : "", valueText(v))),
+        );
+        if (!value.length) cells.append(el("span", "", "[ ]"));
+        firstArray = false;
+        row.append(cells);
+      } else row.append(el("code", "", valueText(value)));
       state.append(row);
     }
-    for(let i=0;i<source.children.length;i++)source.children[i].classList.toggle("current",i===frame.line);
-    const current=source.children[frame.line], pane=source.parentElement;
-    if(current){
-      const offset=current.getBoundingClientRect().top-pane.getBoundingClientRect().top;
-      if(offset<0||offset+current.offsetHeight>pane.clientHeight)pane.scrollTop+=offset-pane.clientHeight/2;
+    for (let i = 0; i < source.children.length; i++)
+      source.children[i].classList.toggle("current", i === frame.line);
+    const current = source.children[frame.line],
+      pane = source.parentElement;
+    if (current) {
+      const offset = current.getBoundingClientRect().top - pane.getBoundingClientRect().top;
+      if (offset < 0 || offset + current.offsetHeight > pane.clientHeight)
+        pane.scrollTop += offset - pane.clientHeight / 2;
     }
-    local("#answer").textContent=index===trace.frames.length-1?valueText(trace.answer):"最後のステップで確認";
+    local("#answer").textContent =
+      index === trace.frames.length - 1 ? valueText(trace.answer) : "最後のステップで確認";
   }
-  function go(to){stopLibrary();index=to;show();}
-  function run(){
+  function go(to) {
+    stopLibrary();
+    index = to;
+    show();
+  }
+  function run() {
     stopLibrary();
     try {
       let data;
-      try { data=JSON.parse(input.value); } catch {throw new Error("JSONの形式を確認してください。キーは二重引用符で囲みます。");}
-      const updated=runLesson(lesson,data);
-      trace=updated;
-      source.replaceChildren(...trace.source.map((line,i)=>{const row=el("span","source-row");row.append(el("i","",i+1),document.createTextNode(line+"\n"));return row;}));
-      local(".input-error").textContent="";seek.max=trace.frames.length-1;go(0);
-    }catch(error){show();local(".input-error").textContent=error.message+" 表示中の手順は前回の入力です。";}
+      try {
+        data = JSON.parse(input.value);
+      } catch {
+        throw new Error("JSONの形式を確認してください。キーは二重引用符で囲みます。");
+      }
+      const updated = runLesson(lesson, data);
+      trace = updated;
+      source.replaceChildren(
+        ...trace.source.map((line, i) => {
+          const row = el("span", "source-row");
+          row.append(el("i", "", i + 1), document.createTextNode(line + "\n"));
+          return row;
+        }),
+      );
+      local(".input-error").textContent = "";
+      seek.max = trace.frames.length - 1;
+      go(0);
+    } catch (error) {
+      show();
+      local(".input-error").textContent = error.message + " 表示中の手順は前回の入力です。";
+    }
   }
-  local("form").onsubmit=e=>{e.preventDefault();run();};
-  local("#restoreInput").onclick=()=>{input.value=JSON.stringify(lesson.example);run();};
-  local("#traceNext").onclick=()=>go(index+1);local("#tracePrev").onclick=()=>go(index-1);
-  local("#traceEnd").onclick=()=>go(trace.frames.length-1);seek.oninput=()=>go(Number(seek.value));
-  local("#tracePlay").onclick=()=>{
-    if(playback){go(index);return;}
-    if(index===trace.frames.length-1)index=0;
-    playback=setInterval(()=>{index++;if(index===trace.frames.length-1)stopLibrary();show();},550);show();
+  local("form").onsubmit = (e) => {
+    e.preventDefault();
+    run();
   };
-  local("#copySource").onclick=async()=>{
-    try{await navigator.clipboard.writeText(lesson.solve.toString());local("#copyStatus").textContent="コピーしました。";}
-    catch{local("#copyStatus").textContent="コードを選択してコピーしてください。";}
+  local("#restoreInput").onclick = () => {
+    input.value = JSON.stringify(lesson.example);
+    run();
+  };
+  local("#traceNext").onclick = () => go(index + 1);
+  local("#tracePrev").onclick = () => go(index - 1);
+  local("#traceEnd").onclick = () => go(trace.frames.length - 1);
+  seek.oninput = () => go(Number(seek.value));
+  local("#tracePlay").onclick = () => {
+    if (playback) {
+      go(index);
+      return;
+    }
+    if (index === trace.frames.length - 1) index = 0;
+    playback = setInterval(() => {
+      index++;
+      if (index === trace.frames.length - 1) stopLibrary();
+      show();
+    }, 550);
+    show();
+  };
+  local("#copySource").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(
+        lesson.solve.toString() +
+          "\n\nconsole.log(" +
+          lesson.solve.name +
+          "(" +
+          JSON.stringify(trace.frames[0].state) +
+          "));",
+      );
+      local("#copyStatus").textContent = "関数と現在の入力での呼び出し例をコピーしました。";
+    } catch {
+      local("#copyStatus").textContent = "コードを選択してコピーしてください。";
+    }
   };
   run();
+  practice(local("#practiceSlot"), lesson, updateMastery);
 }
 export function openLibrary(hash) {
   stopLibrary();
-  const lesson=catalog.find(l=>hash==="#learn/"+l.id);
-  if(lesson) showLesson(lesson);else list();
-  document.title=(lesson?.title || "アルゴリズム図鑑")+" · RouteLab";
+  updateMastery();
+  if (hash === "#compare") {
+    comparisonView(root, (id, input) => importedInputs.set(id, input));
+    document.title = "ソート比較実験 · RouteLab";
+    return;
+  }
+  const lesson = catalog.find((l) => hash === "#learn/" + l.id);
+  if (lesson) showLesson(lesson);
+  else list();
+  document.title = (lesson?.title || "アルゴリズム図鑑") + " · RouteLab";
 }
