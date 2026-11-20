@@ -1141,3 +1141,42 @@ footer {
 .catalog-tools select {
   min-height: 40px;
 }
+.case-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(65px, 1fr) minmax(90px, 1fr);
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding: 12px 0;
+  align-items: center;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+.case-row code {
+  white-space: pre-wrap;
+}
+.verdict {
+  color: #375e45;
+  font-weight: 650;
+  line-height: 1.7;
+  margin: 10px 0;
+}
+.library-extras .text-link:nth-of-type(2) {
+  margin-left: auto;
+}
+@media (max-width: 690px) {
+  .case-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+  }
+  .case-row code {
+    grid-column: 1/-1;
+  }
+  .library-extras {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+  }
+  .library-extras .text-link:nth-of-type(2) {
+    margin-left: 0;
+  }
+}

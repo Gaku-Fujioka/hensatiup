@@ -1,3 +1,4 @@
+import { compileExpression } from "./expressions.js";
 import { maps } from "./maps.js";
 import { explore, rules } from "./search.js";
 
@@ -28,52 +29,8 @@ export const missions = [
   },
 ];
 
-// Deliberately small arithmetic language. Only the three displayed inputs are bound.
 export function compileRule(source) {
-  const input = source.trim();
-  if (!input || input.length > 100)
-    throw new Error("1〜100文字で優先順位の式を入力してください。");
-  const tokens = input.match(/\d+(?:\.\d+)?|[a-zA-Z]+|[^\s]/g);
-  let index = 0;
-  function atom() {
-    const token = tokens[index++];
-    if (token === "(") {
-      const f = sum();
-      if (tokens[index++] !== ")") throw new Error("括弧を閉じてください。");
-      return f;
-    }
-    if (["g", "h", "steps"].includes(token)) return (node) => node[token];
-    if (/^\d+(?:\.\d+)?$/.test(token)) {
-      const n = Number(token);
-      if (n > 1000) throw new Error("数値は0〜1000を使ってください。");
-      return () => n;
-    }
-    throw new Error("使えるのは g、h、steps、数値、+、*、括弧です。");
-  }
-  function product() {
-    let f = atom();
-    while (tokens[index] === "*") {
-      index++;
-      const left = f,
-        right = atom();
-      f = (node) => left(node) * right(node);
-    }
-    return f;
-  }
-  function sum() {
-    let f = product();
-    while (tokens[index] === "+") {
-      index++;
-      const left = f,
-        right = product();
-      f = (node) => left(node) + right(node);
-    }
-    return f;
-  }
-  const rule = sum();
-  if (index !== tokens.length)
-    throw new Error("項と項の間には + または * を置いてください。");
-  return rule;
+  return compileExpression(source, ["g", "h", "steps"], { basic: true });
 }
 
 export function grade(mission, rule) {
