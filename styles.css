@@ -1318,8 +1318,7 @@ footer {
   color: #406d78;
 }
 .dispatch-actions,
-.terrain-key,
-.stamp-log {
+.terrain-key {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
@@ -1392,18 +1391,6 @@ footer {
   font-weight: 700;
   margin: 0;
 }
-.stamp-log span {
-  border: 1px dashed #bdb99e;
-  color: #6d715b;
-  border-radius: 4px;
-  padding: 3px 7px;
-  font-size: 12px;
-}
-.stamp-log .earned {
-  color: #275941;
-  border: 1px solid #839c7e;
-  background: #e4edd6;
-}
 .cargo-mark {
   position: absolute;
   right: 20px;
@@ -1423,11 +1410,13 @@ footer {
   bottom: 2px;
 }
 #raceReport {
-  background: #eef4e6;
-  border-left: 4px solid #709969;
-  border-radius: 6px;
-  margin: 14px 0 0;
-  padding: 12px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  color: #fff6d9;
+  background: #244334;
+  border-bottom: 3px solid #cba766;
+  padding: 16px 20px;
 }
 #raceReport h2 {
   font-size: 18px;
@@ -1436,6 +1425,148 @@ footer {
   margin: 4px 0 0;
   font-size: 14px;
   line-height: 1.6;
+}
+#nextQuest {
+  margin-top: 9px;
+  padding: 6px 14px;
+  background: #f9e5ad;
+  color: #304637;
+  border-color: #dfbc74;
+  font-weight: 700;
+}
+.award {
+  --metal: #d3976f;
+  flex: 0 0 54px;
+  height: 62px;
+  position: relative;
+  isolation: isolate;
+  padding-top: 13px;
+  text-align: center;
+  font: 700 12px/22px var(--mono);
+  letter-spacing: -1px;
+  color: #463523;
+}
+.award[data-stars="2"] { --metal: #c5d5d1; }
+.award[data-stars="3"] { --metal: #f8ce67; }
+.award::before, .award::after { content: ""; position: absolute; z-index: -1; }
+.award::before {
+  inset: 24px 7px 0;
+  background: repeating-linear-gradient(90deg, #ae594c 0 6px, #e2aa79 6px 9px);
+  clip-path: polygon(8% 0, 92% 0, 100% 100%, 50% 77%, 0 100%);
+}
+.award::after {
+  inset: 0 3px auto;
+  height: 46px;
+  background: linear-gradient(125deg, #fff1ce, var(--metal) 48%, #987245);
+  border: 4px double #6f5738;
+  border-radius: 50%;
+}
+#missionBoard { margin: 0 0 19px; }
+.quest-heading, .quest-card, #questObjectives li { display: flex; align-items: center; }
+.quest-heading { justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.quest-heading h2 { font-size: 18px; margin: 0; color: #2e4439; }
+#questTotal { font: 650 13px/1.5 var(--mono); color: #68542f; }
+.quest-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.quest-card {
+  --patch: #f2d2b1;
+  --edge: #b67b55;
+  position: relative;
+  text-align: left;
+  gap: 12px;
+  padding: 12px;
+  min-width: 0;
+  color: #374634;
+  background: #faf8ee;
+  border: 1px solid #c3c7b6;
+  border-bottom: 3px solid var(--edge);
+  border-radius: 8px;
+}
+.quest-card[data-region="sand"] { --patch: #e1e6bc; --edge: #809253; }
+.quest-card[data-region="pass"] { --patch: #ded6e0; --edge: #99809b; }
+.quest-card[data-region="daily"] { --patch: #efdfb7; --edge: #c19a54; }
+.quest-card:hover { background: #f3efdb; border-color: #a89a70; }
+.quest-card[aria-pressed="true"],
+.quest-card[aria-pressed="true"]:hover:enabled {
+  color: #fff9dc;
+  background: #2d483d;
+  border-color: #2d483d;
+  border-bottom-color: #e6b350;
+}
+.quest-emblem {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 4px;
+  border: 1px solid #0002;
+  border-radius: 6px;
+  background: var(--patch);
+  image-rendering: pixelated;
+}
+.quest-info { display: grid; gap: 1px; }
+.quest-info small { opacity: .84; font-size: 11px; }
+.quest-info strong { font-size: 16px; line-height: 1.45; }
+.quest-rank { font-size: 12px; color: #61644c; }
+.quest-rank[data-stars="3"] { color: #886018; font-weight: 700; }
+.quest-card[aria-pressed="true"] .quest-rank { color: #ffda89; }
+#questObjectives {
+  list-style: none;
+  margin: 0;
+  padding: 10px 14px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  background: #fffdf3;
+  border-bottom: 1px solid #dce1cc;
+}
+#questObjectives li { gap: 6px; }
+#questObjectives b { color: #79745c; font-size: 20px; }
+#questObjectives li[data-met="true"] b { color: #986512; }
+#questObjectives strong, #questObjectives small { display: block; }
+#questObjectives strong { font-size: 13px; color: #394c3c; }
+#questObjectives small { font-size: 11px; color: #656952; }
+#radioSource {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: #f9d784;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+#radioSource::before {
+  content: "";
+  width: 16px;
+  height: 13px;
+  background: linear-gradient(to top, currentColor 35%, transparent 35%) left / 4px 100% no-repeat,
+    linear-gradient(to top, currentColor 66%, transparent 66%) center / 4px 100% no-repeat,
+    linear-gradient(currentColor, currentColor) right / 4px 100% no-repeat;
+}
+#radioSource:not([hidden]) ~ #subtitle {
+  max-width: min(57ch, 67%);
+  text-shadow: 0 1px 4px #102a20;
+}
+@media (prefers-reduced-motion: no-preference) {
+  #raceReport:not([hidden]) .award { animation: award-stamp 280ms ease-out both; }
+  @keyframes award-stamp {
+    from { transform: scale(1.2) rotate(-12deg); opacity: .3; }
+    to { transform: scale(1); opacity: 1; }
+  }
+}
+@media (max-width: 940px) {
+  .quest-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 500px) {
+  #radioSource:not([hidden]) ~ #subtitle { max-width: 100%; }
+  .expedition-shell .intro:has(#radioSource:not([hidden])) {
+    background-image: linear-gradient(90deg, #102d25f2, #13372cdc 54%, #193d3080), url("./assets/rescue-valley.jpg");
+  }
+  .quest-card { gap: 6px; padding: 7px; }
+  .quest-info strong { font-size: 13px; }
+  .quest-emblem { width: 33px; height: 33px; padding: 2px; }
+  #questObjectives { grid-template-columns: 1fr; gap: 3px; padding: 7px 11px; }
+  #questObjectives li > span { display: flex; flex-wrap: wrap; gap: 0 7px; align-items: baseline; }
+  #questObjectives b { font-size: 15px; }
+  #raceReport { gap: 8px; padding: 12px; }
 }
 @media (max-width: 690px) {
   .expedition-shell .intro {

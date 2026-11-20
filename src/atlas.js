@@ -159,6 +159,23 @@ function vehicle(ctx, x, y, scout) {
   ctx.restore();
 }
 
+function questFlag(ctx, x, y, number, reached) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = "#453e46";
+  ctx.fillRect(-9, -15, 3, 27);
+  ctx.fillRect(-13, 10, 10, 3);
+  ctx.fillRect(-6, -15, 19, 17);
+  ctx.fillStyle = reached ? "#36735b" : "#784886";
+  ctx.fillRect(-6, -13, 17, 13);
+  ctx.fillStyle = "#fff7da";
+  ctx.font = "bold 12px monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(reached ? "✓" : String(number), 2, -6);
+  ctx.restore();
+}
+
 // Keep the letter on a separate flag so buildings and both vehicles remain recognisable.
 function station(ctx, x, y, label, id) {
   const dispatch = label === "S",
@@ -249,6 +266,7 @@ export function draw(canvas, map, result, index, cursor, expedition = null) {
   if (expedition) {
     trail(ctx, expedition.guide, center, "#367986", -6, true);
     trail(ctx, expedition.path, center, "#b9681e", expedition.guide ? 5 : 0, false);
+    expedition.markers.forEach((cell, i) => questFlag(ctx, ...center(cell), i + 1, i < expedition.reached));
   }
   for (const [i, label, color] of [
     [map.start, "S", "#246c53"],

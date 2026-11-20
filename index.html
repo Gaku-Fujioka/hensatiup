@@ -27,6 +27,7 @@
     <main class="wrap" id="routeLab">
       <div class="intro">
         <div>
+          <div id="radioSource" hidden></div>
           <h1 id="pageTitle">経路探索ラボ</h1>
           <p id="subtitle">
             同じ地図を、違う考え方で。探索の一手を見てみよう。
@@ -37,8 +38,12 @@
         ></label>
       </div>
       <div id="labModes" class="lab-modes" hidden aria-label="探索ラボのモード">
-        <button type="button" id="rescueMode">救援ルートを描く</button><button type="button" id="studyMode">探索を観察</button>
+        <button type="button" id="rescueMode">ミッションに挑む</button><button type="button" id="studyMode">探索を観察</button>
       </div>
+      <section id="missionBoard" aria-labelledby="questHeading" hidden>
+        <div class="quest-heading"><h2 id="questHeading">ミッションボード</h2><span id="questTotal"></span></div>
+        <div class="quest-cards" id="questCards"></div>
+      </section>
       <div class="workspace">
         <section class="panel board">
           <div class="panel-head">
@@ -48,6 +53,13 @@
             <div class="board-command"><span id="status" class="status">待機中</span><button id="launch" class="primary" hidden>出動する</button></div>
           </div>
           <div id="rescueInstruction" hidden><p id="routeNotice" aria-live="polite"></p></div>
+          <ul id="questObjectives" aria-label="ミッションの達成条件" hidden></ul>
+          <section id="raceReport" aria-live="polite" hidden>
+            <div class="award" id="award" aria-hidden="true"></div>
+            <div class="debrief"><h2 id="deliveryTitle"></h2><p id="deliveryReply"></p><p id="deliveryStats"></p><p id="deliveryTip"></p>
+              <button id="nextQuest" type="button">次の任務へ →</button>
+            </div>
+          </section>
           <div class="map-wrap">
             <div id="colLabels" class="col-labels" aria-hidden="true"></div>
             <div class="map-body">
@@ -66,7 +78,6 @@
             <div class="dispatch-actions"><button id="undoWay">1歩戻す</button><button id="clearWay">最初から</button><button id="skipRace" hidden>結果へ</button></div>
             <div class="terrain-key"><span><i class="grass-key"></i>平地 1</span><span><i class="sand-key"></i>砂地 4</span><span>森・水辺は通行不可</span></div>
             <details class="route-help"><summary>ルートの操作</summary><p>直線は先のマスを選ぶとまとめて引けます。通ったマスを選ぶとそこまで戻ります。地図にフォーカスして矢印キーでも道を引けます。Backspaceで1歩戻します。</p></details>
-            <section id="raceReport" aria-live="polite" hidden><h2 id="deliveryTitle"></h2><p id="deliveryStats"></p><p id="deliveryTip"></p></section>
           </div>
           <div class="legend">
             <span><i class="start">S</i>出発</span
