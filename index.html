@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#fafaf6"><title>RouteLab · 経路探索ラボ</title><link rel="icon" href="./icon.svg"><link rel="stylesheet" href="./styles.css"></head>
+<body>
+<header><div class="top wrap"><a class="brand" href="#lab" aria-label="RouteLab ホーム"><img alt="" src="./icon.svg">Route<span>Lab</span></a>
+<nav aria-label="学習メニュー"><a href="#lab" id="navLab">探索ラボ</a><a href="#mission" id="navMission">配送ミッション</a></nav><div class="progress"><span aria-hidden="true">⚑</span> 達成 <b id="progress">0 / 3</b></div></div></header>
+<main class="wrap"><div class="intro"><div><h1 id="pageTitle">経路探索ラボ</h1><p id="subtitle">同じ地図を、違う考え方で。探索の一手を見てみよう。</p></div><label class="map-select">マップ<select id="preset" aria-label="マップ"></select></label></div>
+<div class="workspace"><section class="panel board"><div class="panel-head"><h2><span class="map-icon" aria-hidden="true">▦</span> 探索マップ</h2><span id="status" class="status">待機中</span></div>
+<div class="map-wrap"><div id="colLabels" class="col-labels" aria-hidden="true"></div><div class="map-body"><div id="rowLabels" class="row-labels" aria-hidden="true"></div><canvas id="map" tabindex="0" role="group" aria-label="探索マップ。矢印キーでマスを移動" aria-describedby="cellInfo"></canvas></div></div>
+<div class="legend"><span><i class="start">S</i>出発</span><span><i class="goal">G</i>目的地</span><span><i class="seen"></i>探索済み</span><span><i class="front">▪</i>候補</span><span><i class="path"></i>経路</span></div>
+<div class="playback"><div class="timeline"><label for="seek">ステップ <b id="step"></b></label><input id="seek" type="range" min="0" value="0"></div><div class="buttons"><button id="play" class="primary"></button><button id="prev" class="square" aria-label="1ステップ戻る" title="1ステップ戻る">❮</button><button id="next" class="square" aria-label="1ステップ進む" title="1ステップ進む">❯</button><button id="rewind" class="square" aria-label="先頭に戻る" title="先頭に戻る">↺</button><select id="speed" aria-label="再生速度"><option value="450">0.5×</option><option value="225" selected>1×</option><option value="110">2×</option><option value="50">4×</option></select></div></div>
+<p class="narration" id="narration"></p><div id="cellInfo" class="sr" aria-live="polite"></div></section>
+<aside id="sidebar"></aside></div><section id="lower"></section></main>
+<footer class="wrap">RouteLab <span>アルゴリズム学習ノート</span></footer>
+<script type="module" src="./src/app.js"></script></body></html>
