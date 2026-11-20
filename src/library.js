@@ -54,7 +54,7 @@ export function stopLibrary() {
 function list() {
   root.innerHTML = `<div class="lib-heading"><div><h1>アルゴリズム図鑑</h1><p>考え方を読み、入力を変えて、コードの動きを確かめよう。</p></div></div>
     <a class="feature-lesson" href="#learn/binary"><div><small>最初のレッスン</small><h2>二分探索</h2><p>中央の値を見ると、なぜ候補が半分になる？</p></div><div class="feature-cells" aria-hidden="true"><i>1</i><i>3</i><i>4</i><i>7</i><i>11</i></div></a>
-    <div class="library-extras"><a class="text-link" href="#compare">ソート比較実験</a><span>同じ入力で6方式の比較回数を測る</span><a class="text-link" href="#drill/binary">実装ドリル</a><span>式を書いてテストする全6問</span></div>
+    <div class="library-extras"><a class="text-link" href="#compare">ソート比較実験</a><span>同じ入力で6方式の比較回数を測る</span><a class="text-link" href="#lab/observe">探索キューの比較実験</a><span>同じ経路で2種類のキューを比べる</span><a class="text-link" href="#drill/binary">実装ドリル</a><span>式を書いてテストする全6問</span></div>
     <div class="catalog-tools"><label>教材を検索<input type="search" placeholder="例：ソート、区間、名簿" id="findLesson"></label><label>分野<select id="lessonGroup"></select></label><label>学習状況<select id="studyFilter"><option value="">すべて</option><option value="review">要復習</option><option value="learned">正解済み</option><option value="new">未回答</option></select></label></div>
     <p class="catalog-count" role="status"></p><div class="catalog-grid"></div>`;
   const search = local("#findLesson"),
