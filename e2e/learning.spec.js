@@ -6,6 +6,7 @@ test("algorithm selection, trace seeking, playback, predictions and map editing"
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/#lab");
+  await page.getByRole("button",{name:"探索を観察"}).click();
   const status = page.locator("#status");
   await page.getByRole("button", { name: /A\* 探索/ }).click();
   await page.getByRole("button", { name: "1ステップ進む" }).click();

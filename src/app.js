@@ -5,11 +5,14 @@ import { draw, coordinates, boardLabel } from "./atlas.js";
 import { openLibrary, stopLibrary } from "./library.js";
 import { editor, paint, quiz } from "./editor.js";
 import { activeMission, completed, showWorkshop } from "./workshop.js";
+import { RescueControl } from "./rescue-control.js";
+import { makeDailyMap } from "./daily-map.js";
 
 const $ = (id) => document.getElementById(id);
 const canvas = $("map");
 const preset = $("preset");
-maps.forEach((map) => preset.add(new Option(map.name, map.id)));
+const labMaps = [...maps, makeDailyMap()];
+labMaps.forEach((map) => preset.add(new Option(map.name, map.id)));
 for (let x = 0; x < maps[0].cols; x++)
   $("colLabels").append(
     Object.assign(document.createElement("span"), {
@@ -20,7 +23,7 @@ for (let y = 1; y <= maps[0].rows; y++)
   $("rowLabels").append(Object.assign(document.createElement("span"), { textContent: y }));
 
 let map = structuredClone(maps[0]);
-let algorithm = "bfs";
+let algorithm = "dijkstra";
 let results,
   result,
   step = 0,
@@ -31,6 +34,9 @@ let editing = false;
 let labMap = map;
 const editedMaps = new Map([[map.id, map]]);
 const choices = Object.entries(lessons);
+let labView = "rescue";
+const rescue = new RescueControl(renderBoard);
+const planning = () => mode === "lab" && labView === "rescue";
 function analyse() {
   results = Object.fromEntries(Object.entries(rules).map(([key, rule]) => [key, explore(map, rule)]));
   result = results[algorithm];
@@ -38,6 +44,12 @@ function analyse() {
 }
 
 function renderBoard() {
+  if (planning()) {
+    draw(canvas, map, result, 0, null, rescue.overlay());
+    const label=boardLabel(map, rescue.route.at(-1));
+    if ($("cellInfo").textContent !== label) $("cellInfo").textContent = label;
+    return;
+  }
   const last = result.frames.length - 1;
   const frame = result.frames[step];
   draw(canvas, map, result, step, cursor);
@@ -177,22 +189,49 @@ function lab() {
     '<section class="panel lower-panel" id="editor"><h2>地形と移動ルール</h2><p>上下左右に1マスずつ進めます。平地はコスト1、砂地は4。森と水辺は通れません。</p></section></div>';
 }
 function render() {
+  const expedition = planning();
+  $("routeLab").classList.toggle("expedition-shell", mode === "lab");
+  $("labModes").hidden = mode !== "lab";
+  $("rescueInstruction").hidden = $("rescueControls").hidden = !expedition;
+  $("launch").hidden = !expedition;
+  for (const part of [".legend", ".playback", ".narration"])
+    document.querySelector(".board " + part).hidden = expedition;
+  $("boardTitle").textContent = expedition ? map.name + "の作戦地図" : "探索マップ";
+  canvas.classList.toggle("route-drawing", expedition);
+  $("rescueMode").setAttribute("aria-pressed", String(expedition));
+  $("studyMode").setAttribute("aria-pressed", String(!expedition));
+  $("map").setAttribute(
+    "aria-label",
+    expedition ? "救援ルートの地図。矢印キーで道を引く" : "探索マップ。矢印キーでマスを移動",
+  );
   $("progress").textContent = completed.size + " / 3";
   if (mode === "lab") {
     lab();
+    if (!expedition) $("subtitle").textContent = "探索を1手ずつ再生して、3つの方式が選ぶ道を比べよう。";
+    if (expedition) {
+      $("sidebar").querySelector("h2").textContent = "先導車の探索方式";
+      const brief = document.createElement("section");
+      brief.id = "dispatchBrief";
+      brief.className = "panel side dispatch-brief";
+      $("sidebar").prepend(brief);
+      rescue.configure(map, algorithm, result, results.dijkstra);
+      rescue.mount();
+    }
     quiz($("sidebar"), algorithm);
     editor(
       $("editor"),
       editing,
       () => {
         pause();
+        rescue.leave();
+        labView = "study";
         editing = !editing;
         render();
         document.getElementById("edit").focus();
       },
       () => {
         pause();
-        map = structuredClone(maps.find((m) => m.id === map.id));
+        map = structuredClone(labMaps.find((m) => m.id === map.id));
         editedMaps.set(map.id, map);
         analyse();
         render();
@@ -210,9 +249,24 @@ function render() {
   canvas.classList.toggle("editing", editing && mode === "lab");
   renderBoard();
 }
+function chooseView(view) {
+  pause();
+  rescue.leave();
+  editing = false;
+  labView = view;
+  step = 0;
+  cursor = null;
+  render();
+}
+$("rescueMode").onclick = () => {
+  if (!planning()) chooseView("rescue");
+};
+$("studyMode").onclick = () => {
+  if (planning()) chooseView("study");
+};
 preset.onchange = () => {
   pause();
-  map = editedMaps.get(preset.value) ?? structuredClone(maps.find((m) => m.id === preset.value));
+  map = editedMaps.get(preset.value) ?? structuredClone(labMaps.find((m) => m.id === preset.value));
   editedMaps.set(map.id, map);
   cursor = null;
   analyse();
@@ -226,7 +280,7 @@ function applyBrush(cell) {
     render();
   }
 }
-canvas.onclick = (e) => {
+function pointerCell(e) {
   const rect = canvas.getBoundingClientRect();
   const x = Math.max(
     0,
@@ -236,7 +290,31 @@ canvas.onclick = (e) => {
     0,
     Math.min(map.rows - 1, Math.floor(((e.clientY - rect.top) * map.rows) / rect.height)),
   );
-  cursor = y * map.cols + x;
+  return y * map.cols + x;
+}
+let drag = null;
+canvas.onpointerdown = (e) => {
+  if (!planning() || !e.isPrimary || e.button !== 0 || rescue.phase !== "plan") return;
+  const cell = pointerCell(e);
+  canvas.focus({ preventScroll: true });
+  canvas.setPointerCapture(e.pointerId);
+  drag = { id: e.pointerId, cell };
+  rescue.point(cell);
+};
+canvas.onpointermove = (e) => {
+  if (!planning() || drag?.id !== e.pointerId) return;
+  const cell = pointerCell(e);
+  if (cell !== drag.cell) {
+    drag.cell = cell;
+    rescue.point(cell);
+  }
+};
+canvas.onlostpointercapture = () => {
+  drag = null;
+};
+canvas.onclick = (e) => {
+  if (planning()) return;
+  cursor = pointerCell(e);
   applyBrush(cursor);
   renderBoard();
 };
@@ -249,7 +327,7 @@ canvas.onblur = () => {
   renderBoard();
 };
 canvas.onkeydown = (e) => {
-  const pos = cursor ?? map.start,
+  const pos = planning() ? rescue.route.at(-1) : (cursor ?? map.start),
     col = pos % map.cols;
   const moves = {
     ArrowRight: col < map.cols - 1 ? pos + 1 : pos,
@@ -259,8 +337,19 @@ canvas.onkeydown = (e) => {
   };
   if (e.key in moves) {
     e.preventDefault();
+    if (planning()) {
+      if (moves[e.key] !== pos) rescue.point(moves[e.key]);
+      return;
+    }
     cursor = moves[e.key];
     renderBoard();
+  }
+  if (planning()) {
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      rescue.undo();
+    }
+    return;
   }
   if (e.key === "Enter" || e.key === " ") {
     e.preventDefault();
@@ -269,6 +358,7 @@ canvas.onkeydown = (e) => {
 };
 function openPage() {
   pause();
+  rescue.leave();
   cursor = null;
   if (mode === "lab") labMap = map;
   stopLibrary();
@@ -293,11 +383,11 @@ function openPage() {
   map = mission ? maps.find((m) => m.id === activeMission().map) : labMap;
   preset.value = map.id;
   preset.disabled = mission;
-  $("pageTitle").textContent = mission ? "配送ミッション" : "経路探索ラボ";
+  $("pageTitle").textContent = mission ? "配送ミッション" : "救援ルート探検隊";
   document.title = $("pageTitle").textContent + " · RouteLab";
   $("subtitle").textContent = mission
     ? "優先順位の式を書いて、自分のアルゴリズムで荷物を届けよう。"
-    : "同じ地図を、違う考え方で。探索の一手を見てみよう。";
+    : "行き先を選び、自分の道で物資を届けよう。";
   for (const [id, active] of [
     ["navLab", !mission],
     ["navMission", mission],
