@@ -15,6 +15,7 @@
           ><img alt="" src="./icon.svg" />Route<span>Lab</span></a
         >
         <nav aria-label="学習メニュー">
+          <a href="#library" id="navLibrary">アルゴリズム図鑑</a>
           <a href="#lab" id="navLab">探索ラボ</a
           ><a href="#mission" id="navMission">配送ミッション</a>
         </nav>
@@ -23,7 +24,7 @@
         </div>
       </div>
     </header>
-    <main class="wrap">
+    <main class="wrap" id="routeLab">
       <div class="intro">
         <div>
           <h1 id="pageTitle">経路探索ラボ</h1>
@@ -106,6 +107,7 @@
       </div>
       <section id="lower"></section>
     </main>
+    <main class="wrap library" id="library" hidden></main>
     <footer class="wrap">RouteLab <span>アルゴリズム学習ノート</span></footer>
     <script type="module" src="./src/app.js"></script>
   </body>
