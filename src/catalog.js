@@ -1,2 +1,3 @@
 import { arrayLessons } from "./array-lessons.js";
-export const catalog = [...arrayLessons];
+import { graphLessons } from "./graph-lessons.js";
+export const catalog = [...arrayLessons, ...graphLessons];

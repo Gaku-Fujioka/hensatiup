@@ -171,7 +171,7 @@ function lab() {
     lessons[algorithm].heading +
     "</h2><p>" +
     lessons[algorithm].detail +
-    '</p><a class="text-link" href="#mission">配送ミッションで使う</a></section>';
+    '</p><p><a class="text-link" href="#learn/'+algorithm+'">JavaScript実装と変数を見る</a></p><a class="text-link" href="#mission">配送ミッションで使う</a></section>';
   for (const button of document.querySelectorAll("[data-rule]"))
     button.onclick = () => {
       pause();
