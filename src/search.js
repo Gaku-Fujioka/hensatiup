@@ -1,4 +1,5 @@
 import { neighbours, TERRAIN } from "./maps.js";
+import { HeapFrontier } from "./frontier.js";
 
 export const rules = {
   bfs: ({ steps }) => steps,
@@ -13,9 +14,7 @@ function distance(map, i) {
   );
 }
 
-// A fixed 15 × 9 teaching board favours an inspectable, stable queue.
-// The trace records exactly what the player saw after each expansion.
-export function explore(map, priority) {
+export function explore(map, priority, Frontier = HeapFrontier) {
   const { start, goal } = map;
   const origin = {
     cell: start,
@@ -24,15 +23,12 @@ export function explore(map, priority) {
     h: distance(map, start),
     parent: null,
   };
-  const queue = new Map([[start, { ...origin, score: priority(origin) }]]);
+  const queue = new Frontier();
+  queue.offer({ ...origin, score: priority(origin) });
   const visited = new Set();
-  const frames = [{ current: null, frontier: [start], added: [], cost: 0 }];
+  const frames = [{ current: null, frontier: [start], added: [], cost: 0, comparisons: 0 }];
   while (queue.size) {
-    let next;
-    for (const node of queue.values()) {
-      if (!next || node.score < next.score) next = node;
-    }
-    queue.delete(next.cell);
+    const next = queue.take();
     visited.add(next.cell);
     const added = [];
     if (next.cell !== goal) {
@@ -45,17 +41,15 @@ export function explore(map, priority) {
           h: distance(map, cell),
           parent: next,
         };
-        const score = priority(node);
-        if (queue.has(cell) && queue.get(cell).score <= score) continue;
-        queue.set(cell, { ...node, score });
-        added.push(cell);
+        if (queue.offer({ ...node, score: priority(node) })) added.push(cell);
       }
     }
     frames.push({
       current: next.cell,
-      frontier: [...queue.keys()],
+      frontier: [...queue.cells()],
       added,
       cost: next.g,
+      comparisons: queue.comparisons,
     });
     if (next.cell === goal) {
       const path = [];
