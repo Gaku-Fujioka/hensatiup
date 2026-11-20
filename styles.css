@@ -1180,3 +1180,338 @@ footer {
     margin-left: 0;
   }
 }
+
+/* Expedition board */
+.expedition-shell .intro {
+  min-height: 198px;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: center;
+  gap: 15px;
+  overflow: hidden;
+  margin: 23px 0 14px;
+  border-radius: 15px;
+  padding: 24px 32px;
+  background: #15362e linear-gradient(90deg, #16372e, #1a4033);
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(13, 38, 33, 0.94),
+      rgba(17, 45, 38, 0.78) 32%,
+      rgba(17, 45, 38, 0.16) 63%,
+      transparent 82%
+    ),
+    url("./assets/rescue-valley.jpg");
+  background-size: cover;
+  background-position: center 54%;
+  color: #fff9e9;
+}
+.expedition-shell .intro h1 {
+  font-size: clamp(29px, 3.25vw, 45px);
+  letter-spacing: -0.06em;
+  margin-bottom: 4px;
+}
+.expedition-shell .intro p {
+  color: #eff3d9;
+  font-weight: 500;
+  max-width: 70%;
+}
+.expedition-shell .map-select {
+  color: #e4eacb;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-content: start;
+  gap: 10px;
+  font-weight: 700;
+}
+.expedition-shell .map-select select {
+  color: #26382d;
+  background: #fbf6e6;
+  border-color: #ead9ad;
+  min-height: 36px;
+  padding: 5px 15px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.lab-modes {
+  display: inline-flex;
+  border: 1px solid #cbd5c7;
+  background: #e9eee3;
+  border-radius: 9px;
+  gap: 3px;
+  padding: 3px;
+  margin-bottom: 14px;
+}
+.lab-modes button {
+  font-size: 14px;
+  border: none;
+  background: transparent;
+  padding: 7px 18px;
+  color: #4c6151;
+}
+.lab-modes button[aria-pressed="true"] {
+  background: #254c3e;
+  color: #fffdf3;
+  box-shadow: 0 1px 3px #243d332c;
+}
+.expedition-shell .board .panel-head {
+  background: #243e34;
+  color: #fff6de;
+  border-color: #476250;
+}
+.expedition-shell .board .map-icon {
+  color: #dec184;
+}
+.expedition-shell .status {
+  background: #415d4b;
+  color: #f4edcb;
+}
+.expedition-shell .board .status[data-on="true"] {
+  background: #ddbc70;
+  color: #32422f;
+}
+#rescueInstruction {
+  background: #f9f6e9;
+  padding: 9px 17px;
+  color: #4b5949;
+  border-bottom: 1px solid #dce1cc;
+}
+#rescueInstruction p {
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+}
+.expedition-shell .map-wrap {
+  background: #edf1df;
+}
+.route-drawing {
+  cursor: crosshair;
+  touch-action: none;
+}
+#rescueControls {
+  padding: 14px 18px 13px;
+}
+.convoy-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.45fr;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+.convoy-metrics > div + div {
+  border-left: 1px solid var(--line);
+  padding-left: 12px;
+}
+.convoy-metrics small {
+  display: block;
+  font-size: 12px;
+  color: #5c6c5d;
+  line-height: 1.5;
+}
+.convoy-metrics b {
+  font: 700 21px/1.4 var(--mono);
+  color: #2c4539;
+}
+.convoy-metrics > div:last-child b {
+  font:
+    600 14px/1.9 "Yu Gothic UI",
+    sans-serif;
+  color: #406d78;
+}
+.dispatch-actions,
+.terrain-key,
+.stamp-log {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.terrain-key {
+  margin-top: 11px;
+  color: #52604d;
+  gap: 15px;
+  font-size: 13px;
+  align-items: center;
+}
+.terrain-key span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.terrain-key i {
+  width: 13px;
+  height: 13px;
+  border-radius: 2px;
+  border: 1px solid #849471;
+}
+.grass-key {
+  background: #d6e4a7;
+}
+.sand-key {
+  background: #eace93;
+}
+.route-help {
+  margin-top: 7px;
+}
+.route-help p {
+  line-height: 1.7;
+  margin: 6px 0;
+}
+.dispatch-brief {
+  position: relative;
+  background: #fbf6e8;
+  border: 1px solid #d7ccaa;
+  box-shadow: inset 4px 0 #d6aa5f;
+}
+.dispatch-brief .brief-label {
+  font-size: 13px;
+  color: #78623e;
+  font-weight: 700;
+}
+.dispatch-brief h2 {
+  margin: 6px 32px 8px 0;
+  font-size: 22px;
+}
+.dispatch-brief .brief-copy {
+  font-size: 14px;
+  color: #535c48;
+}
+.dispatch-brief dl {
+  margin: 12px 0 9px;
+}
+.dispatch-brief dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px dashed #d9cfb8;
+  font-size: 14px;
+}
+.dispatch-brief dt {
+  color: #705f43;
+}
+.dispatch-brief dd {
+  font-weight: 700;
+  margin: 0;
+}
+.stamp-log span {
+  border: 1px dashed #bdb99e;
+  color: #6d715b;
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 12px;
+}
+.stamp-log .earned {
+  color: #275941;
+  border: 1px solid #839c7e;
+  background: #e4edd6;
+}
+.cargo-mark {
+  position: absolute;
+  right: 20px;
+  top: 21px;
+  width: 29px;
+  height: 25px;
+  border: 3px solid #89683a;
+  background: linear-gradient(90deg, #dfb677 35%, #f9de9e 35% 61%, #daa968 61%);
+  box-shadow: 3px 4px #ceb98e;
+}
+.cargo-mark i {
+  position: absolute;
+  height: 4px;
+  background: #886a42;
+  width: 8px;
+  right: 2px;
+  bottom: 2px;
+}
+#raceReport {
+  background: #eef4e6;
+  border-left: 4px solid #709969;
+  border-radius: 6px;
+  margin: 14px 0 0;
+  padding: 12px 16px;
+}
+#raceReport h2 {
+  font-size: 18px;
+}
+#raceReport p {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+@media (max-width: 690px) {
+  .expedition-shell .intro {
+    min-height: 168px;
+    margin-top: 13px;
+    padding: 15px;
+    background-position: 70% 55%;
+    gap: 10px;
+  }
+  .expedition-shell .intro p {
+    max-width: 93%;
+    font-size: 13px;
+    text-shadow: 0 1px 4px #182e25;
+  }
+  .lab-modes {
+    display: flex;
+  }
+  .lab-modes button {
+    flex: 1;
+    padding-inline: 6px;
+  }
+  .convoy-metrics {
+    gap: 4px;
+  }
+  .convoy-metrics > div + div {
+    padding-left: 6px;
+  }
+  #rescueControls {
+    padding: 11px 12px;
+  }
+  .dispatch-actions button {
+    font-size: 13px;
+  }
+  .dispatch-brief h2 {
+    font-size: 20px;
+  }
+}
+.board-command {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.board-command #launch {
+  background: #efbc6b;
+  color: #293d30;
+  border: 1px solid #d5a855;
+  font-weight: 750;
+  min-height: 34px;
+  padding: 6px 16px;
+}
+.board-command #launch:hover:enabled {
+  background: #ffcd82;
+}
+.board-command #launch:disabled {
+  opacity: 0.65;
+}
+.expedition-shell .panel-head {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+@media (max-width: 500px) {
+  .expedition-shell .panel-head {
+    padding: 9px 11px;
+  }
+  .expedition-shell .panel-head h2 {
+    font-size: 15px;
+  }
+  .board-command {
+    gap: 5px;
+  }
+  .board-command #launch {
+    font-size: 13px;
+    padding: 5px 8px;
+  }
+  .board-command .status {
+    font-size: 11px;
+    padding: 3px 5px;
+  }
+}

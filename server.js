@@ -6,12 +6,13 @@ const mime = {
   css: "text/css",
   js: "text/javascript",
   svg: "image/svg+xml",
+  jpg: "image/jpeg",
 };
 const port = Number(process.env.PORT || 4173);
 const server = http.createServer(async (req, res) => {
   const path = req.url.split("?")[0];
   const file = path === "/" ? "index.html" : path.slice(1);
-  if (!/^(index\.html|styles\.css|icon\.svg|src\/[a-z-]+\.js)$/.test(file)) {
+  if (!/^(index\.html|styles\.css|icon\.svg|assets\/rescue-valley\.jpg|src\/[a-z-]+\.js)$/.test(file)) {
     res.writeHead(404).end();
     return;
   }

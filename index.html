@@ -36,14 +36,18 @@
           >マップ<select id="preset" aria-label="マップ"></select
         ></label>
       </div>
+      <div id="labModes" class="lab-modes" hidden aria-label="探索ラボのモード">
+        <button type="button" id="rescueMode">救援ルートを描く</button><button type="button" id="studyMode">探索を観察</button>
+      </div>
       <div class="workspace">
         <section class="panel board">
           <div class="panel-head">
             <h2>
-              <span class="map-icon" aria-hidden="true">▦</span> 探索マップ
+              <span class="map-icon" aria-hidden="true">▦</span> <span id="boardTitle">探索マップ</span>
             </h2>
-            <span id="status" class="status">待機中</span>
+            <div class="board-command"><span id="status" class="status">待機中</span><button id="launch" class="primary" hidden>出動する</button></div>
           </div>
+          <div id="rescueInstruction" hidden><p id="routeNotice" aria-live="polite"></p></div>
           <div class="map-wrap">
             <div id="colLabels" class="col-labels" aria-hidden="true"></div>
             <div class="map-body">
@@ -56,6 +60,13 @@
                 aria-describedby="cellInfo"
               ></canvas>
             </div>
+          </div>
+          <div id="rescueControls" hidden>
+            <div class="convoy-metrics"><div><small>救援車の燃料</small><b id="usedFuel">0</b></div><div><small>計画した歩数</small><b id="routeSteps">0</b></div><div><small>先導車 · <span id="guideName"></span></small><b id="guideReadout"></b></div></div>
+            <div class="dispatch-actions"><button id="undoWay">1歩戻す</button><button id="clearWay">最初から</button><button id="skipRace" hidden>結果へ</button></div>
+            <div class="terrain-key"><span><i class="grass-key"></i>平地 1</span><span><i class="sand-key"></i>砂地 4</span><span>森・水辺は通行不可</span></div>
+            <details class="route-help"><summary>ルートの操作</summary><p>直線は先のマスを選ぶとまとめて引けます。通ったマスを選ぶとそこまで戻ります。地図にフォーカスして矢印キーでも道を引けます。Backspaceで1歩戻します。</p></details>
+            <section id="raceReport" aria-live="polite" hidden><h2 id="deliveryTitle"></h2><p id="deliveryStats"></p><p id="deliveryTip"></p></section>
           </div>
           <div class="legend">
             <span><i class="start">S</i>出発</span
