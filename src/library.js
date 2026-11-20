@@ -10,6 +10,22 @@ const el = (tag, className, text) => {
   return node;
 };
 const local = selector => root.querySelector(selector);
+function matrix(values, i, j, input) {
+  const table=el("table","dp-matrix");
+  table.setAttribute("aria-label","部分問題の計算表");
+  const head=table.createTHead().insertRow();
+  for(const label of ["行／列","∅",...input.b]) head.append(el("th","",label));
+  const body=table.createTBody();
+  values.forEach((row,r)=>{
+    const tr=body.insertRow();
+    tr.append(el("th","",r ? [...input.a][r-1] : "∅"));
+    row.forEach((v,c)=>{
+      const ready=!r||!c||r<i||(r===i&&c<=j);
+      tr.append(el("td",r===i&&c===j?"current":"",ready?v:"·"));
+    });
+  });
+  const scroll=el("div","matrix-scroll");scroll.append(table);return scroll;
+}
 const valueText = value => typeof value === "string" ? value : typeof value === "number" && !Number.isFinite(value) ? "∞" : JSON.stringify(value);
 let query = "", group = "すべて", playback;
 export function stopLibrary() { clearInterval(playback); playback = null; }
@@ -69,6 +85,10 @@ function showLesson(lesson) {
     if(diagram)state.append(diagram);
     let firstArray=true;
     for(const [name,value] of Object.entries(frame.state)){
+      if(name==="dp" && ["lcs","edit"].includes(lesson.id) && Number.isInteger(frame.state.i)) {
+        state.append(matrix(value,frame.state.i,frame.state.j,trace.frames[0].state));
+        continue;
+      }
       const row=el("div","var-row");row.append(el("b","var-name",name));
       if(Array.isArray(value)){
         const cells=el("div","value-cells");
@@ -79,6 +99,11 @@ function showLesson(lesson) {
       state.append(row);
     }
     for(let i=0;i<source.children.length;i++)source.children[i].classList.toggle("current",i===frame.line);
+    const current=source.children[frame.line], pane=source.parentElement;
+    if(current){
+      const offset=current.getBoundingClientRect().top-pane.getBoundingClientRect().top;
+      if(offset<0||offset+current.offsetHeight>pane.clientHeight)pane.scrollTop+=offset-pane.clientHeight/2;
+    }
     local("#answer").textContent=index===trace.frames.length-1?valueText(trace.answer):"最後のステップで確認";
   }
   function go(to){stopLibrary();index=to;show();}
