@@ -3,33 +3,49 @@ import { makeDailyMap } from "./daily-map.js";
 
 export const assignments = {
   daily: {
-    title: "本日の補給要請",
+    title: "消えた野営地",
     cargo: "野営セット",
-    call: "新しい野営地から補給の依頼です。今日の地形を読み、燃料20以内で救援車を届けてください。地図は日付ごとに替わります。",
+    sender: "先遣隊の偵察員",
+    call: "昨夜の雨で道しるべが流された。紫の旗を確認して、野営セットを届けてほしい！",
+    hint: "旗は今日の地形に合わせて立っています。旗までと、旗から先の二つに分けて道を考えてみよう。",
+    reply: "旗が見えた！ 今夜は全員、屋根の下で眠れるよ。",
+    medal: "荒野の開拓者",
     budget: 20,
   },
   river: {
-    title: "川向こうの診療所へ",
+    title: "激流の救命線",
     cargo: "救急キット",
-    call: "増水した川の向こうで、診療所が救急キットを待っています。砂道を横切るか、林の外側を回るか。",
+    sender: "川辺の診療所",
+    call: "こちら診療所。川があふれた！ 救急キットを頼む。流された予備の薬箱も南の岸に見えている！",
+    hint: "橋への近道には砂が積もっています。南岸の薬箱を拾う道と直行する道、どちらが燃料を節約できるかな。",
+    reply: "救急キット、受け取ったよ。これで手当てを続けられる！",
+    medal: "川の守り手",
     budget: 28,
   },
   sand: {
-    title: "砂丘の給水所へ",
+    title: "砂海のオアシス",
     cargo: "飲料水",
-    call: "給水所のタンクが空に。砂丘の集落まで水を届けてください。砂地を抜ける道では燃料を多く使います。",
+    sender: "砂丘の給水班",
+    call: "貯水槽は残りひとしずく。水を満載して来てくれ！ 車輪が沈まないよう、固い地面を選べるか？",
+    hint: "砂地を横切ると1歩で燃料4。砂丘の端をたどって、平地がつながる切れ目を探そう。",
+    reply: "水だ！ みんな、水筒を持って集まってくれ！",
+    medal: "砂海の水先人",
     budget: 22,
   },
   pass: {
-    title: "峠の観測小屋へ",
+    title: "星明かりの中継塔",
     cargo: "通信機の電池",
-    call: "峠の先で観測小屋の電池が切れそうです。森の切れ目を探して、通信機の電池を届けてください。",
+    sender: "峠の通信士",
+    call: "……聞こえるか？ 小屋の電池が切れそうだ。ふもとの第1塔から順に中継器を起こしてくれ！",
+    hint: "第1塔を通ってから第2塔へ向かうと通信がつながります。尾根へ上がる前に、ふもとの道を確かめよう。",
+    reply: "こちら観測小屋、電源復旧！ 星空の観測データを送るよ。",
+    medal: "星をつなぐ者",
     budget: 25,
   },
 };
 
 export function mapKey(map) {
-  return [map.id, map.cols, map.rows, map.start, map.goal, map.cells.join("")].join("/");
+  return [recordKey(map), map.cols, map.rows, map.start, map.goal, map.cells.join("")].join("/");
 }
 export function isOfficial(map) {
   if (map.id === "daily") return mapKey(map) === mapKey(makeDailyMap(map.day));
@@ -73,10 +89,15 @@ export function itinerary(map, path) {
   return { path: [...path], times, fuel, steps: path.length - 1 };
 }
 
+export function lastStop(trip, tick) {
+  let i = 0;
+  while (i + 1 < trip.times.length && trip.times[i + 1] <= tick) i++;
+  return i;
+}
+
 export function positionAt(trip, tick, map) {
   const end = trip.path.length - 1;
-  let i = 0;
-  while (i < end && trip.times[i + 1] <= tick) i++;
+  const i = lastStop(trip, tick);
   const a = trip.path[i],
     b = trip.path[Math.min(i + 1, end)];
   const part = i === end ? 0 : Math.max(0, (tick - trip.times[i]) / (trip.times[i + 1] - trip.times[i]));
@@ -86,8 +107,9 @@ export function positionAt(trip, tick, map) {
   };
 }
 
-const key = "routelab.rescue.records.v1";
-export function loadRecords(storage) {
+const fuelKey = "routelab.rescue.records.v1";
+const medalKey = "routelab.rescue.medals.v1";
+function loadBests(storage, key) {
   try {
     const data = JSON.parse(storage.getItem(key)) || {};
     return Object.fromEntries(
@@ -95,7 +117,7 @@ export function loadRecords(storage) {
         ([id, n]) =>
           (["river", "sand", "pass"].includes(id) || /^daily-\d{4}-\d{2}-\d{2}$/.test(id)) &&
           Number.isSafeInteger(n) &&
-          n > 0,
+          n > 0 && (key !== medalKey || n <= 3),
       ),
     );
   } catch {
@@ -103,19 +125,32 @@ export function loadRecords(storage) {
   }
 }
 
-export function fileDelivery(records, map, fuel, storage) {
+export const loadRecords = (storage) => loadBests(storage, fuelKey);
+export const loadMedals = (storage) => loadBests(storage, medalKey);
+
+function fileBest(records, map, value, storage, key, best) {
   if (!isOfficial(map)) return records;
-  const saved = loadRecords(storage);
-  const next = { ...records };
-  for (const [id, cost] of Object.entries(saved)) next[id] = Math.min(next[id] ?? Infinity, cost);
+  const next = loadBests(storage, key);
+  for (const [id, n] of Object.entries(records)) next[id] = best(next[id] ?? n, n);
   const id = recordKey(map);
-  next[id] = Math.min(next[id] ?? Infinity, fuel);
-  if (map.id === "daily")
-    for (const k of Object.keys(next)) if (k.startsWith("daily-") && k < id) delete next[k];
+  next[id] = best(next[id] ?? value, value);
+  const latest = Object.keys(next).filter((k) => k.startsWith("daily-")).sort().at(-1);
+  for (const k of Object.keys(next)) if (k.startsWith("daily-") && k !== latest) delete next[k];
   try {
     storage.setItem(key, JSON.stringify(next));
   } catch {
     /* Records still apply to this session. */
   }
   return next;
+}
+
+export const fileDelivery = (records, map, fuel, storage) =>
+  fileBest(records, map, fuel, storage, fuelKey, Math.min);
+export const fileMedal = (medals, map, stars, storage) =>
+  fileBest(medals, map, stars, storage, medalKey, Math.max);
+
+// Previous versions recorded only fuel, which proves delivery and possibly the fuel target.
+export function bestStars(medals, records, key, budget) {
+  const fuel = records[key];
+  return Math.max(medals[key] ?? 0, fuel == null ? 0 : fuel <= budget ? 2 : 1);
 }

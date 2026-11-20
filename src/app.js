@@ -7,12 +7,14 @@ import { editor, paint, quiz } from "./editor.js";
 import { activeMission, completed, showWorkshop } from "./workshop.js";
 import { RescueControl } from "./rescue-control.js";
 import { makeDailyMap } from "./daily-map.js";
+import { mountMissionBoard } from "./mission-board.js";
 
 const $ = (id) => document.getElementById(id);
 const canvas = $("map");
 const preset = $("preset");
 const labMaps = [...maps, makeDailyMap()];
 labMaps.forEach((map) => preset.add(new Option(map.name, map.id)));
+mountMissionBoard(labMaps, selectMap);
 for (let x = 0; x < maps[0].cols; x++)
   $("colLabels").append(
     Object.assign(document.createElement("span"), {
@@ -35,7 +37,10 @@ let labMap = map;
 const editedMaps = new Map([[map.id, map]]);
 const choices = Object.entries(lessons);
 let labView = "rescue";
-const rescue = new RescueControl(renderBoard);
+const rescue = new RescueControl(renderBoard, labMaps.at(-1).day, () => {
+  selectMap(labMaps[(labMaps.findIndex((region) => region.id === map.id) + 1) % labMaps.length].id);
+  $("launch").focus();
+});
 const planning = () => mode === "lab" && labView === "rescue";
 function analyse() {
   results = Object.fromEntries(Object.entries(rules).map(([key, rule]) => [key, explore(map, rule)]));
@@ -190,6 +195,11 @@ function lab() {
 }
 function render() {
   const expedition = planning();
+  $("missionBoard").hidden = !expedition;
+  $("radioSource").hidden = !expedition;
+  if (!expedition) canvas.setAttribute("aria-describedby", "cellInfo");
+  preset.closest("label").hidden = expedition;
+  if (!expedition) $("questObjectives").hidden = $("raceReport").hidden = true;
   $("routeLab").classList.toggle("expedition-shell", mode === "lab");
   $("labModes").hidden = mode !== "lab";
   $("rescueInstruction").hidden = $("rescueControls").hidden = !expedition;
@@ -206,6 +216,8 @@ function render() {
   );
   $("progress").textContent = completed.size + " / 3";
   if (mode === "lab") {
+    $("pageTitle").textContent = expedition ? "救援ミッション！" : "経路探索ラボ";
+    document.title = $("pageTitle").textContent + " · RouteLab";
     lab();
     if (!expedition) $("subtitle").textContent = "探索を1手ずつ再生して、3つの方式が選ぶ道を比べよう。";
     if (expedition) {
@@ -264,14 +276,17 @@ $("rescueMode").onclick = () => {
 $("studyMode").onclick = () => {
   if (planning()) chooseView("study");
 };
-preset.onchange = () => {
+function selectMap(id) {
+  if (id === map.id) return;
+  preset.value = id;
   pause();
-  map = editedMaps.get(preset.value) ?? structuredClone(labMaps.find((m) => m.id === preset.value));
+  map = editedMaps.get(id) ?? structuredClone(labMaps.find((m) => m.id === id));
   editedMaps.set(map.id, map);
   cursor = null;
   analyse();
   render();
-};
+}
+preset.onchange = () => selectMap(preset.value);
 function applyBrush(cell) {
   if (!editing || mode !== "lab") return;
   if (paint(map, cell)) {

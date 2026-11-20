@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { maps } from "../src/maps.js";
+import { makeDailyMap } from "../src/daily-map.js";
 import { explore, rules } from "../src/search.js";
 
 async function cell(page, map, index, touch = false) {
@@ -12,10 +13,21 @@ async function cell(page, map, index, touch = false) {
   else await page.mouse.click(x, y);
 }
 
+async function drawWithKeys(page, map, path) {
+  const board = page.locator("#map");
+  await board.focus();
+  for (let i = 1; i < path.length; i++) {
+    const delta = path[i] - path[i - 1];
+    const keys = { [map.cols]: "ArrowDown", [-map.cols]: "ArrowUp", 1: "ArrowRight", "-1": "ArrowLeft" };
+    await board.press(keys[delta]);
+  }
+}
+
 test("draw, compare, retry and record the most economical delivery", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/#lab");
+  await page.getByRole("button", { name: "任務を受ける" }).click();
   await expect(page.locator("#launch")).toBeDisabled();
   const map = maps[0];
   await cell(page, map, map.start - map.cols);
@@ -28,23 +40,39 @@ test("draw, compare, retry and record the most economical delivery", async ({ pa
   await page.locator("#launch").click();
   await page.locator("#skipRace").click();
   await expect(page.locator("#deliveryStats")).toContainText("12歩・燃料33 ／ ダイクストラ法 22歩・燃料22");
+  await expect(page.locator("#deliveryTitle")).toContainText("銅章獲得");
   await expect(page.locator("#bestFuel")).toHaveText("33");
   await page.locator("#launch").click();
   await page.locator("#clearWay").click();
   const path = explore(map, rules.dijkstra).path;
-  const board = page.locator("#map");
-  await board.focus();
-  for (let i = 1; i < path.length; i++) {
-    const d = path[i] - path[i - 1];
-    await board.press(d === 1 ? "ArrowRight" : d === -1 ? "ArrowLeft" : d > 0 ? "ArrowDown" : "ArrowUp");
-  }
+  await drawWithKeys(page, map, path);
   await page.locator("#launch").click();
   await page.locator("#skipRace").click();
-  await expect(page.locator("#deliveryTitle")).toHaveText("目標燃料で配送成功！");
+  await expect(page.locator("#deliveryTitle")).toHaveText("金章獲得！ 「川の守り手」");
+  await expect(page.locator("#questObjectives [data-met=true]")).toHaveCount(3);
   await page.reload();
   await expect(page.locator("#bestFuel")).toHaveText("22");
-  await expect(page.locator(".stamp-log .earned")).toHaveText("✓ 川辺");
+  await expect(page.locator('[data-region="river"]')).toContainText("★★★　金章");
+  await expect(page.locator("#questTotal")).toContainText("3 / 12");
   expect(errors).toEqual([]);
+});
+
+test("complete all four contracts in sequence and retain the twelve-star field log", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/#lab");
+  for (const id of ["river", "sand", "pass", "daily"]) {
+    await expect(page.locator(`[data-region="${id}"]`)).toHaveAttribute("aria-pressed", "true");
+    const map = maps.find((region) => region.id === id)
+      ?? makeDailyMap((await page.locator(".brief-label").innerText()).match(/\d{4}-\d{2}-\d{2}/)[0]);
+    await page.getByRole("button", { name: "任務を受ける" }).click();
+    await drawWithKeys(page, map, explore(map, rules.dijkstra).path);
+    await page.getByRole("button", { name: "出動する" }).click();
+    await expect(page.locator("#deliveryTitle")).toContainText("金章獲得");
+    if (id !== "daily") await page.locator("#nextQuest").click();
+  }
+  await page.reload();
+  await expect(page.locator("#questTotal")).toContainText("全任務制覇！　12 / 12");
+  await expect(page.locator("#progress")).toHaveText("4 / 4");
 });
 
 test.describe("mobile expedition", () => {
@@ -52,13 +80,20 @@ test.describe("mobile expedition", () => {
   test("tap routes and switch region without carrying over a result", async ({ page }) => {
     await page.goto("/#lab");
     await cell(page, maps[0], maps[0].goal, true);
+    await expect(page.locator("#routeSteps")).toHaveText("0");
+    await page.getByRole("button", { name: "任務を受ける" }).tap();
+    await cell(page, maps[0], maps[0].goal, true);
     await page.locator("#undoWay").click();
     await expect(page.locator("#launch")).toBeDisabled();
     await cell(page, maps[0], maps[0].goal, true);
     await page.locator("#launch").click();
     await expect(page.locator("#raceReport")).toBeVisible();
-    await page.locator("#preset").selectOption("daily");
-    await expect(page.locator("#dispatchBrief")).toContainText("本日の補給要請");
+    await page.locator("#nextQuest").tap();
+    await expect(page.locator('[data-region="sand"]')).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("#launch")).toHaveText("任務を受ける");
+    await page.locator('[data-region="daily"]').tap();
+    await expect(page.locator("#dispatchBrief")).toContainText("消えた野営地");
+    await expect(page.locator("#questObjectives")).toContainText("野営旗");
     await expect(page.locator("#raceReport")).toBeHidden();
     await expect(page.locator("#routeSteps")).toHaveText("0");
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
@@ -87,4 +122,5 @@ test("a vehicle naturally reaches an edited goal without filing an official reco
   await page.locator("#launch").click();
   await expect(page.locator("#deliveryStats")).toContainText("1歩・燃料1");
   expect(await page.evaluate(() => localStorage.getItem("routelab.rescue.records.v1"))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem("routelab.rescue.medals.v1"))).toBeNull();
 });
