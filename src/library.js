@@ -4,6 +4,8 @@ import { graphView } from "./graph-view.js";
 import { comparisonView, mastery, practice, progressFor } from "./study-tools.js";
 import { openDrill } from "./drill-view.js";
 import { drills } from "./drills.js";
+import { useCases } from "./use-cases.js";
+import { applicationIds, openApplication } from "./applied-view.js";
 
 const root = document.getElementById("library");
 const el = (tag, className, text) => {
@@ -55,10 +57,17 @@ function list() {
   root.innerHTML = `<div class="lib-heading"><div><h1>アルゴリズム図鑑</h1><p>考え方を読み、入力を変えて、コードの動きを確かめよう。</p></div></div>
     <a class="feature-lesson" href="#learn/binary"><div><small>最初のレッスン</small><h2>二分探索</h2><p>中央の値を見ると、なぜ候補が半分になる？</p></div><div class="feature-cells" aria-hidden="true"><i>1</i><i>3</i><i>4</i><i>7</i><i>11</i></div></a>
     <div class="library-extras"><a class="text-link" href="#compare">ソート比較実験</a><span>同じ入力で6方式の比較回数を測る</span><a class="text-link" href="#lab/observe">探索キューの比較実験</a><span>同じ経路で2種類のキューを比べる</span><a class="text-link" href="#drill/binary">実装ドリル</a><span>式を書いてテストする全6問</span></div>
+    <section class="application-shelf"><h2>試せるミニアプリ</h2><div class="application-cards"></div></section>
     <div class="catalog-tools"><label>教材を検索<input type="search" placeholder="例：ソート、区間、名簿" id="findLesson"></label><label>分野<select id="lessonGroup"></select></label><label>学習状況<select id="studyFilter"><option value="">すべて</option><option value="review">要復習</option><option value="learned">正解済み</option><option value="new">未回答</option></select></label></div>
     <p class="catalog-count" role="status"></p><div class="catalog-grid"></div>`;
   const search = local("#findLesson"),
     select = local("#lessonGroup");
+  for (const id of applicationIds) {
+    const link = el("a", "application-card");
+    link.href = "#apply/" + id;
+    link.append(el("small", "", catalog.find((entry) => entry.id === id).title), el("strong", "", useCases[id].title));
+    local(".application-cards").append(link);
+  }
   for (const name of ["すべて", ...new Set(catalog.map((l) => l.group))]) select.add(new Option(name, name));
   search.value = query;
   select.value = group;
@@ -72,7 +81,7 @@ function list() {
       if (progress && progress !== status) continue;
       if (
         (group !== "すべて" && group !== lesson.group) ||
-        ![lesson.title, lesson.group, lesson.id, lesson.idea, lesson.use, lesson.solve.name]
+        ![lesson.title, lesson.group, lesson.id, lesson.idea, lesson.use, lesson.solve.name, useCases[lesson.id].title, useCases[lesson.id].description]
           .join(" ")
           .toLowerCase()
           .includes(term)
@@ -110,7 +119,8 @@ function list() {
 
 function showLesson(lesson) {
   root.innerHTML = `<a class="back-link" href="#library">図鑑の一覧へ</a><div class="lib-heading"><div><small class="group-name"></small><h1></h1><p class="lesson-idea"></p></div><span class="time-tag"></span></div>
-    <div class="lesson-context"><div><h2>使いどころ</h2><p class="use"></p></div><div><h2>覚えておくこと</h2><p class="note"></p></div></div>
+    <div class="lesson-context"><div><h2>このアルゴリズムでできること</h2><h3 id="caseTitle"></h3><p class="use"></p>
+    <div class="actions case-actions"><button type="button" id="caseInput">この実用例で手順を見る</button></div></div><div><h2>覚えておくこと</h2><p class="note"></p></div></div>
     <div class="study-grid"><section class="study-panel experiment"><h2>実行を観察</h2><form><label for="lessonInput">入力データ <small>JSON</small></label><textarea id="lessonInput" rows="3" maxlength="3500" spellcheck="false"></textarea>
     <div class="actions"><button class="primary">この入力で実行</button><button type="button" id="restoreInput">例に戻す</button></div><p class="input-error" role="alert"></p></form>
     <details><summary>入力と計算量の読み方</summary><div id="fieldHelp"></div><p>O は入力が増えたときの処理量の増え方です。O(n) は要素数に比例し、O(log n) は候補を半分ずつに減らす場合などに現れます。グラフの V は頂点数、E は辺の数です。計算量は観察用の記録を除いたものです。</p></details>
@@ -123,10 +133,17 @@ function showLesson(lesson) {
   for (const [selector, key] of [
     [".lesson-idea", "idea"],
     [".time-tag", "time"],
-    [".use", "use"],
     [".note", "note"],
   ])
     local(selector).textContent = lesson[key];
+  const scenario = useCases[lesson.id];
+  local("#caseTitle").textContent = scenario.title;
+  local(".use").textContent = scenario.description;
+  if (applicationIds.includes(lesson.id)) {
+    const link = el("a", "text-link", "ミニアプリで試す");
+    link.href = "#apply/" + lesson.id;
+    local(".case-actions").prepend(link);
+  }
   const next = catalog[catalog.indexOf(lesson) + 1];
   const meaning = {
     values: "調べる数列",
@@ -250,6 +267,11 @@ function showLesson(lesson) {
     input.value = JSON.stringify(lesson.example);
     run();
   };
+  local("#caseInput").onclick = () => {
+    input.value = JSON.stringify(scenario.input);
+    run();
+    local("#traceNext").focus();
+  };
   local("#traceNext").onclick = () => go(index + 1);
   local("#tracePrev").onclick = () => go(index - 1);
   local("#traceEnd").onclick = () => go(trace.frames.length - 1);
@@ -293,6 +315,10 @@ function showLesson(lesson) {
 export function openLibrary(hash) {
   stopLibrary();
   updateMastery();
+  if (hash.startsWith("#apply/") && applicationIds.includes(hash.slice(7))) {
+    openApplication(root, catalog.find((entry) => entry.id === hash.slice(7)), (id, input) => importedInputs.set(id, input));
+    return;
+  }
   if (hash.startsWith("#drill/")) {
     openDrill(root, hash.slice(7));
     return;
