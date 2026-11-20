@@ -2,6 +2,7 @@ import { maps } from "./maps.js";
 import { explore, rules } from "./search.js";
 import { lessons } from "./lessons.js";
 import { draw, coordinates, boardLabel } from "./atlas.js";
+import { openLibrary, stopLibrary } from "./library.js";
 import { editor, paint, quiz } from "./editor.js";
 import { activeMission, completed, showWorkshop } from "./workshop.js";
 
@@ -288,12 +289,27 @@ function openPage() {
   pause();
   cursor = null;
   if (mode === "lab") labMap = map;
+  stopLibrary();
+  const learning = location.hash === "#library" || location.hash.startsWith("#learn/");
+  $("library").hidden = !learning;
+  $("routeLab").hidden = learning;
+  if (learning) {
+    mode = "library";
+    $("navLab").removeAttribute("aria-current");
+    $("navMission").removeAttribute("aria-current");
+    $("navLibrary").setAttribute("aria-current", "page");
+    openLibrary(location.hash);
+    window.scrollTo(0, 0);
+    return;
+  }
+  $("navLibrary").removeAttribute("aria-current");
   mode = location.hash === "#mission" ? "mission" : "lab";
   const mission = mode === "mission";
   map = mission ? maps.find((m) => m.id === activeMission().map) : labMap;
   preset.value = map.id;
   preset.disabled = mission;
   $("pageTitle").textContent = mission ? "配送ミッション" : "経路探索ラボ";
+  document.title = $("pageTitle").textContent + " · RouteLab";
   $("subtitle").textContent = mission
     ? "優先順位の式を書いて、自分のアルゴリズムで荷物を届けよう。"
     : "同じ地図を、違う考え方で。探索の一手を見てみよう。";
