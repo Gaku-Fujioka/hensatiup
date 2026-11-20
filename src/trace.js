@@ -3,26 +3,50 @@ export function requireInput(ok, message) {
 }
 
 export function integers(values, name = "values", min = -99, max = 99, limit = 16) {
-  requireInput(Array.isArray(values) && values.length <= limit &&
-    values.every(n => Number.isInteger(n) && n >= min && n <= max),
-    name + " は " + min + "〜" + max + " の整数を" + limit + "個まで指定してください。");
+  requireInput(
+    Array.isArray(values) &&
+      values.length <= limit &&
+      values.every((n) => Number.isInteger(n) && n >= min && n <= max),
+    name + " は " + min + "〜" + max + " の整数を" + limit + "個まで指定してください。",
+  );
 }
 export function integer(n, name, min, max) {
-  requireInput(Number.isInteger(n) && n >= min && n <= max, name + " は " + min + "〜" + max + " の整数です。");
+  requireInput(
+    Number.isInteger(n) && n >= min && n <= max,
+    name + " は " + min + "〜" + max + " の整数です。",
+  );
 }
 
 export function runLesson(lesson, input) {
-  requireInput(input && typeof input === "object" && !Array.isArray(input), "入力はJSONオブジェクトにしてください。");
+  requireInput(
+    input && typeof input === "object" && !Array.isArray(input),
+    "入力はJSONオブジェクトにしてください。",
+  );
+  requireInput(
+    Object.keys(input).every((key) => Object.hasOwn(lesson.example, key)),
+    "入力項目は " + Object.keys(lesson.example).join(", ") + " です。",
+  );
   lesson.validate(input);
   const frames = [];
-  const source = lesson.solve.toString().split("\n");
+  const code = lesson.solve.toString();
+  const source = code.split("\n");
+  const lines = new Map();
+  for (const match of code.matchAll(/\bobserve\(\s*"([^"]+)"/g)) {
+    lines.set(match[1], code.slice(0, match.index).split("\n").length - 1);
+  }
   function observe(action, state, active = []) {
-    const line = source.findIndex(text => text.includes('observe("' + action + '"'));
+    const line = lines.get(action);
     frames.push({ action, state: structuredClone(state), active: [...active], line });
   }
   const answer = lesson.solve(structuredClone(input), observe);
-  return { source, frames: [
-    { action: "入力", state: structuredClone(input), active: [], line: 0 },
-    ...frames, { action: "結果", state: { answer }, active: [], line: -1 }
-  ], answer, comparisons: frames.filter(frame => frame.action.startsWith("比較")).length };
+  return {
+    source,
+    frames: [
+      { action: "入力", state: structuredClone(input), active: [], line: 0 },
+      ...frames,
+      { action: "結果", state: { answer }, active: [], line: -1 },
+    ],
+    answer,
+    comparisons: frames.filter((frame) => frame.action.startsWith("比較")).length,
+  };
 }

@@ -290,7 +290,7 @@ function openPage() {
   cursor = null;
   if (mode === "lab") labMap = map;
   stopLibrary();
-  const learning = location.hash === "#library" || location.hash.startsWith("#learn/");
+  const learning = ["", "#library", "#compare"].includes(location.hash) || location.hash.startsWith("#learn/");
   $("library").hidden = !learning;
   $("routeLab").hidden = learning;
   if (learning) {
